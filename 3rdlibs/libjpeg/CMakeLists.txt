@@ -1,3 +1,4 @@
+
 ###############################################################################
 # cmake settings
 ###############################################################################
@@ -154,6 +155,7 @@ configure_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/jconfig.h" @ONLY)
 include_directories(
 	"${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
+	
 # The files in our project
 set( HEADERS jdct.h jpegint.h jmemsys.h )
 set( LIBRARY_HEADERS 
@@ -167,8 +169,16 @@ set( SOURCES
 	jddctmgr.c jdhuff.c jdinput.c jdmainct.c jdmarker.c jdmaster.c 
 	jdmerge.c jdpostct.c jdsample.c jdtrans.c jerror.c jfdctflt.c 
 	jfdctfst.c jfdctint.c jidctflt.c jidctfst.c jidctint.c jquant1.c 
-	jquant2.c jutils.c jmemmgr.c 
+	jquant2.c jutils.c jmemmgr.c # The memory manager
 )
+# Check out the file 'install.txt'. use jmemmac.c for Apple Macintosh,
+if( APPLE )
+	list(APPEND SOURCES jmemmac.c)	# Use jmemmac.c for Apple Macintosh
+elseif( CMAKE_SIZEOF_VOID_P EQUAL 2 AND MSVC )
+	list(APPEND SOURCES jmemdos.c)	# Use jmemdos.c for 16-bit MS-DOS
+else()
+	list(APPEND SOURCES jmemname.c)	# Use jmemname.c for other cases
+endif()
 
 # Set up the library
 add_library ( ${JPEG} STATIC ${SOURCES} ${HEADERS} ${LIBRARY_HEADERS} )

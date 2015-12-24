@@ -179,6 +179,12 @@ check_function_exists(strtoull HAVE_STRTOULL)
 check_function_exists(strcasecmp HAVE_STRCASECMP)
 check_function_exists(jbg_newlen HAVE_JBG_NEWLEN)
 
+check_function_exists(lfind HAVE_LFIND)
+check_function_exists(getopt HAVE_GETOPT)
+check_function_exists(strtoul HAVE_STRTOUL)
+check_function_exists(strtoull HAVE_STRTOULL)
+check_function_exists(strcasecmp HAVE_STRCASECMP)
+
 # The CPU bit order, see more details in configuration file
 # Note: Actually, am not sure if I'm right here, But for now, 
 #       it works well, You can find the following code on GitHub.
@@ -220,11 +226,15 @@ configure_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/tif_config.h" @ONLY)
 include_directories(
 	"${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
+	
+# Build port library
+set(PORT libport)
+add_subdirectory(port)
 
 # The files in our project
 set(HEADERS 
 	t4.h tif_dir.h tif_predict.h uvcode.h tiffiop.h tif_fax3.h 
-	tiffio.hxx	# Support C++ IO stream API
+	tiffio.hxx		# Support C++ IO stream API
 )
 set(SOURCES
 	tif_aux.c tif_close.c tif_codec.c tif_color.c tif_compress.c 
@@ -245,7 +255,7 @@ endif()
 
 # Set up the library
 add_library(${TIFF} STATIC ${SOURCES} ${HEADERS} ${LIBRARY_HEADERS})
-target_link_libraries(${TIFF} ${ZLIB})	# TIFF need zlib component
+target_link_libraries(${TIFF} ${ZLIB} ${PORT})	# TIFF need zlib component
 
 # The c properties on the target.
 set_target_properties(${TIFF} PROPERTIES PREFIX "")
@@ -258,10 +268,11 @@ endif()
 ###############################################################################
 # program settings
 ###############################################################################
-#check_function_exists(snprintf HAVE_SNPRINTF)
-#if (HAVE_SNPRINTF)
-#	add_definitions(-DHAVE_SNPRINTF)
-#endif()
+# Check out [+] .\libtiff\tiffiop.h
+check_function_exists(snprintf HAVE_SNPRINTF)
+if (HAVE_SNPRINTF)
+	add_definitions(-DHAVE_SNPRINTF)
+endif()
 #add_executable(bmp2tiff tools/bmp2tiff.c ${LIBRARY_HEADERS})
 #add_executable(tiffinfo tools/tiffinfo.c ${LIBRARY_HEADERS})
 #add_executable(tiffdump tools/tiffdump.c ${LIBRARY_HEADERS})
