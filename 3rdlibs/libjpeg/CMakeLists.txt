@@ -2,7 +2,7 @@
 ###############################################################################
 # cmake settings
 ###############################################################################
-cmake_minimum_required(VERSION 3.4.0)
+cmake_minimum_required(VERSION 3.0.0)
 
 
 ###############################################################################
@@ -22,12 +22,17 @@ endif()
 ###############################################################################
 # configuration
 ###############################################################################
+enable_testing()
 ENABLE_LANGUAGE(C)
 include(TestBigEndian)
 include(CheckTypeSize)
 include(CheckIncludeFile)
 include(CheckFunctionExists)
 include(CheckCSourceCompiles)
+
+# We don't support Utah RLE image file format, beacause it 
+# needs Utah Raster Toolkit which is not necessary for libjpeg
+remove_definitions( -DRLE_SUPPORTED )
 
 check_type_size("unsigned char" UNSIGNED_CHAR)
 check_type_size("unsigned short" UNSIGNED_SHORT)
@@ -37,6 +42,7 @@ check_include_file(stdlib.h HAVE_STDLIB_H)
 check_include_file(string.h HAVE_STRING_H)
 check_include_file(strings.h HAVE_STRINGS_H)
 check_include_file(sys/types.h HAVE_SYS_TYPES_H)
+
 if( HAVE_STRINGS_H AND NOT HAVE_STRING_H )
 	set(NEED_BSD_STRINGS 1)		# Find more details in jconfig.h.in
 endif()
@@ -149,6 +155,8 @@ endif()
 project(${JPEG} C)
 set(JPEG_VERSION "9a")
 
+set(JPEG_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
 # The configuration file and included directories
 configure_file( 
 	"${CMAKE_CURRENT_SOURCE_DIR}/jconfig.h.cmakein"
@@ -177,7 +185,7 @@ if( APPLE )
 elseif( CMAKE_SIZEOF_VOID_P EQUAL 2 AND MSVC )
 	list(APPEND SOURCES jmemdos.c)	# Use jmemdos.c for 16-bit MS-DOS
 else()
-	list(APPEND SOURCES jmemname.c)	# Use jmemname.c for other cases
+	list(APPEND SOURCES jmemansi.c)	# Use jmemansi.c for other cases
 endif()
 
 # Set up the library
@@ -186,3 +194,13 @@ add_library ( ${JPEG} STATIC ${SOURCES} ${HEADERS} ${LIBRARY_HEADERS} )
 # The c properties on the target.
 set_target_properties(${JPEG} PROPERTIES PREFIX "")
 set_target_properties(${JPEG} PROPERTIES LIBRARY_OUTPUT_NAME ${JPEG})
+
+
+
+###############################################################################
+# program settings
+###############################################################################
+
+if( BUILD_JPEG_TOOL )
+	add_subdirectory( tools )
+endif()

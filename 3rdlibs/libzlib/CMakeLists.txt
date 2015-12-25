@@ -27,8 +27,6 @@ check_include_file(stdint.h HAVE_STDINT_H)
 check_include_file(stddef.h HAVE_STDDEF_H)
 check_include_file(sys/types.h HAVE_SYS_TYPES_H)
 
-set(ZLIB_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
 
 
 ###############################################################################
@@ -60,6 +58,8 @@ if(NOT ZLIB)
 endif()
 project(${ZLIB} C)
 set(ZLIB_VERSION "1.2.8")
+
+set(ZLIB_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 # The configuration file
 configure_file(
@@ -95,5 +95,7 @@ endif()
 ###############################################################################
 # program settings
 ###############################################################################
-add_subdirectory( tools )
 
+if( BUILD_ZLIB_TOOL )
+	add_subdirectory( tools )
+endif()
