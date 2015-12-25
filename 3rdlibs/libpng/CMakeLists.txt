@@ -49,12 +49,7 @@ if( NOT ZLIB )
 		set(ZLIB ${ZLIB_LIBRARIES})
 		include_directories( ${ZLIB_INCLUDE_DIRS} )
 	else()
-		#message(FATAL_ERROR "Can not Find the 'zlib' package")
-		# The following code is used for testing.
-		set(ZLIB "v:/libzlib-build/libzlib.a")
-		set(BUILD_PNG_TOOLS TRUE)
-		include_directories( 
-			"v:/libzlib-build/" "e:/leptonica/3rdlibs/libzlib/")
+		message(FATAL_ERROR "Can not Find the 'zlib' package")
 	endif()
 endif()
 # We need the math library
