@@ -96,6 +96,19 @@ endif()
 # program settings
 ###############################################################################
 
-if( BUILD_ZLIB_TOOL )
-	add_subdirectory( tools )
+add_executable(example contrib/test/example.c)
+target_link_libraries(example ${ZLIB})
+
+add_executable(minigzip contrib/test/minigzip.c)
+target_link_libraries(minigzip ${ZLIB})
+
+if(HAVE_OFF64_T)
+	# For 64bit, we should define _FILE_OFFSET_BITS.
+	set_target_properties(
+		example PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_BITS=64")
+	set_target_properties(
+		minigzip PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_BITS=64")
 endif()
+
+add_test(example example)
+add_test(minigzip minigzip minigzip.exe)
