@@ -201,6 +201,4 @@ set_target_properties(${JPEG} PROPERTIES LIBRARY_OUTPUT_NAME ${JPEG})
 # program settings
 ###############################################################################
 
-if( BUILD_JPEG_TOOLS )
-	add_subdirectory( tools )
-endif()
+add_subdirectory( contrib/tools )
