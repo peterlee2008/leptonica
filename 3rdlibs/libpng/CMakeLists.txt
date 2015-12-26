@@ -40,7 +40,7 @@ if(NOT PNG)
 	set(PNG libpng)
 endif()
 project(${PNG} C)
-set(PNG_VERSION "1.6.18")
+set(PNG_VERSION "1.6.20")
 
 # We need the zlib library
 if( NOT ZLIB )
@@ -99,12 +99,12 @@ endif()
 #
 add_executable(pngvalid contrib/libtests/pngvalid.c)
 target_link_libraries(pngvalid ${PNG})
-add_test(pngvalid ./pngvalid)
+add_test(pngvalid pngvalid)
 
 #
 add_executable(pngstest contrib/libtests/pngstest.c)
 target_link_libraries(pngstest ${PNG})
-add_test(pngstest ./pngstest
+add_test(pngstest pngstest
 	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn0g01.png"
 	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn0g02.png"
 	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn0g04.png"
@@ -140,5 +140,5 @@ add_test(pngstest ./pngstest
 # Does not work with msvc due to png_lib_ver issue
 add_executable(pngtest pngtest.c)
 target_link_libraries(pngtest ${PNG})
-add_test(pngtest ./pngtest "${CMAKE_CURRENT_SOURCE_DIR}/pngtest.png")
+add_test(pngtest pngtest "${CMAKE_CURRENT_SOURCE_DIR}/pngtest.png")
 
