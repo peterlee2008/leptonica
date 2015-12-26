@@ -110,11 +110,11 @@ if(HAVE_OFF64_T)
 		minigzip PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_BITS=64")
 endif()
 
-macro(zlib_tester name program args source target output)
+macro(zlib_tester name program args source digest output)
 	add_test(NAME "${name}" COMMAND "${CMAKE_COMMAND}"
 		"-DPROGRAM=$<TARGET_FILE:${program}>"
 		"-DARGS=${args}" 
-		"-DSOURCE=${source}" "-DTARGET=${target}" 
+		"-DSOURCE=${source}" "-DDIGEST=${digest}" 
 		"-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/${output}"
 		-P "${CMAKE_CURRENT_SOURCE_DIR}/zlibtester.cmake"
 	)
@@ -125,7 +125,5 @@ zlib_tester( example example "" "" "" "example-result.txt" )
 zlib_tester( minigzip minigzip 
 	"-d;${CMAKE_CURRENT_BINARY_DIR}/foo.gz" 
 	"${CMAKE_CURRENT_BINARY_DIR}/foo" 
-	"68656C6C6F2C2068656C6C6F2100" "minigzip-result.txt" 
+	"4C23A67F52D131D98E1FFEA31EE6CCD6" "minigzip-result.txt" 
 )
-68656c6c6f2c2068656c6c6f2100
-68656C6C6F2C2068656C6C6F2100
