@@ -1,30 +1,13 @@
 ###############################################################################
 # cmake settings
 ###############################################################################
-cmake_minimum_required(VERSION 3.4.0)
-
-
-###############################################################################
-# compiler/linker
-###############################################################################
-if (WIN32)
-    if (MSVC)
-		add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
-    endif()
-endif()
-
-if (CYGWIN)
-    add_definitions(-D__CYGWIN__)
-endif()
-
-if (UNIX)
-    set(LIB_pthread pthread)
-endif()
+cmake_minimum_required(VERSION 3.0.0)
 
 
 ###############################################################################
 # configuration
 ###############################################################################
+enable_testing()
 ENABLE_LANGUAGE(C)
 include(TestBigEndian)
 include(CheckTypeSize)
@@ -210,13 +193,50 @@ endif()
 
 
 ###############################################################################
+# compiler/linker
+###############################################################################
+if (WIN32)
+    if (MSVC)
+		add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
+    endif()
+endif()
+
+if (CYGWIN)
+    add_definitions(-D__CYGWIN__)
+endif()
+
+if (UNIX)
+    set(LIB_pthread pthread)
+endif()
+
+if( HAVE_SNPRINTF )
+	add_definitions( -DHAVE_SNPRINTF )
+endif()
+
+
+###############################################################################
 # library settings
 ###############################################################################
 if(NOT TIFF)
 	set(TIFF libtiff)
 endif()
 project(${TIFF} C)
-set(TIFF_VERSION "1.2.8")
+set(TIFF_VERSION "4.0.6")
+
+# We need the zlib library
+if( NOT ZLIB )
+	include(FindZLIB)
+	if( ZLIB_FOUND AND EXISTS ${ZLIB_INCLUDE_DIRS}/zlib.h )
+		set( ZLIB ${ZLIB_LIBRARIES} )
+		include_directories( ${ZLIB_INCLUDE_DIRS} )
+	else()
+		#message(FATAL_ERROR "Can not Find the 'zlib' package")
+		# The following code is used for test
+		set( ZLIB "v:/libzlib-build/libzlib.a" )
+		include_directories( 
+			"e:/leptonica/3rdlibs/libzlib/" "v:/libzlib-build/")
+	endif()
+endif()
 
 configure_file(
 	"${CMAKE_CURRENT_SOURCE_DIR}/tiffconf.h.cmakein"
@@ -227,9 +247,9 @@ configure_file(
 include_directories(
 	"${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
 	
-# Build port library
+# Build the port library
 set(PORT libport)
-add_subdirectory(port)
+add_subdirectory( contrib/port )
 
 # The files in our project
 set(HEADERS 
@@ -265,57 +285,10 @@ if(MSVC)
 endif()
 
 
+
 ###############################################################################
 # program settings
 ###############################################################################
-# Check out [+] .\libtiff\tiffiop.h
-check_function_exists(snprintf HAVE_SNPRINTF)
-if (HAVE_SNPRINTF)
-	add_definitions(-DHAVE_SNPRINTF)
-endif()
-#add_executable(bmp2tiff tools/bmp2tiff.c ${LIBRARY_HEADERS})
-#add_executable(tiffinfo tools/tiffinfo.c ${LIBRARY_HEADERS})
-#add_executable(tiffdump tools/tiffdump.c ${LIBRARY_HEADERS})
-#add_executable(fax2tiff tools/fax2tiff.c ${LIBRARY_HEADERS})
-#add_executable(fax2ps tools/fax2ps.c ${LIBRARY_HEADERS})
-#add_executable(gif2tiff tools/gif2tiff.c ${LIBRARY_HEADERS})
-#add_executable(pal2rgb tools/pal2rgb.c ${LIBRARY_HEADERS})
-#add_executable(ppm2tiff tools/ppm2tiff.c ${LIBRARY_HEADERS})
-#add_executable(rgb2ycbcr tools/rgb2ycbcr.c ${LIBRARY_HEADERS})
-#add_executable(thumbnail tools/thumbnail.c ${LIBRARY_HEADERS})
-#add_executable(ras2tiff tools/ras2tiff.c ${LIBRARY_HEADERS})
-#add_executable(raw2tiff tools/raw2tiff.c ${LIBRARY_HEADERS})
-#add_executable(tiff2bw tools/tiff2bw.c ${LIBRARY_HEADERS})
-#add_executable(tiff2rgba tools/tiff2rgba.c ${LIBRARY_HEADERS})
-#add_executable(tiff2pdf tools/tiff2pdf.c ${LIBRARY_HEADERS})
-#add_executable(tiff2ps tools/tiff2ps.c ${LIBRARY_HEADERS})
-#add_executable(tiffcmp tools/tiffcmp.c ${LIBRARY_HEADERS})
-#add_executable(tiffcp tools/tiffcp.c ${LIBRARY_HEADERS})
-#add_executable(tiffcrop tools/tiffcrop.c ${LIBRARY_HEADERS})
-#add_executable(tiffdither tools/tiffdither.c ${LIBRARY_HEADERS})
-#add_executable(tiffmedian tools/tiffmedian.c ${LIBRARY_HEADERS})
-#add_executable(tiffset tools/tiffset.c ${LIBRARY_HEADERS})
-#add_executable(tiffsplit tools/tiffsplit.c ${LIBRARY_HEADERS})
-#target_link_libraries(bmp2tiff ${TIFF})
-#target_link_libraries(tiffinfo ${TIFF})
-#target_link_libraries(tiffdump ${TIFF})
-#target_link_libraries(fax2tiff ${TIFF})
-#target_link_libraries(fax2ps ${TIFF})
-#target_link_libraries(gif2tiff ${TIFF})
-#target_link_libraries(pal2rgb ${TIFF})
-#target_link_libraries(ppm2tiff ${TIFF})
-#target_link_libraries(rgb2ycbcr ${TIFF})
-#target_link_libraries(thumbnail ${TIFF})
-#target_link_libraries(ras2tiff ${TIFF})
-#target_link_libraries(raw2tiff ${TIFF})
-#target_link_libraries(tiff2bw ${TIFF})
-#target_link_libraries(tiff2rgba ${TIFF})
-#target_link_libraries(tiff2pdf ${TIFF})
-#target_link_libraries(tiff2ps ${TIFF})
-#target_link_libraries(tiffcmp ${TIFF})
-#target_link_libraries(tiffcp ${TIFF})
-#target_link_libraries(tiffcrop ${TIFF})
-#target_link_libraries(tiffdither ${TIFF})
-#target_link_libraries(tiffmedian ${TIFF})
-#target_link_libraries(tiffset ${TIFF})
-#target_link_libraries(tiffsplit ${TIFF})
+
+add_subdirectory( contrib/tools )
+add_subdirectory( contrib/test )
