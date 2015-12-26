@@ -230,11 +230,7 @@ if( NOT ZLIB )
 		set( ZLIB ${ZLIB_LIBRARIES} )
 		include_directories( ${ZLIB_INCLUDE_DIRS} )
 	else()
-		#message(FATAL_ERROR "Can not Find the 'zlib' package")
-		# The following code is used for test
-		set( ZLIB "v:/libzlib-build/libzlib.a" )
-		include_directories( 
-			"e:/leptonica/3rdlibs/libzlib/" "v:/libzlib-build/")
+		message(FATAL_ERROR "Can not Find the 'zlib' package")
 	endif()
 endif()
 
