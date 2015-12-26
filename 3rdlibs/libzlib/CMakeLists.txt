@@ -2,7 +2,7 @@
 ###############################################################################
 # cmake settings
 ###############################################################################
-cmake_minimum_required(VERSION 2.8.11)
+cmake_minimum_required(VERSION 3.0.0)
 
 
 
@@ -110,5 +110,22 @@ if(HAVE_OFF64_T)
 		minigzip PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_BITS=64")
 endif()
 
-add_test(example example)
-add_test(minigzip minigzip minigzip.exe)
+macro(zlib_tester name program args source target output)
+	add_test(NAME "${name}" COMMAND "${CMAKE_COMMAND}"
+		"-DPROGRAM=$<TARGET_FILE:${program}>"
+		"-DARGS=${args}" 
+		"-DSOURCE=${source}" "-DTARGET=${target}" 
+		"-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/${output}"
+		-P "${CMAKE_CURRENT_SOURCE_DIR}/zlibtester.cmake"
+	)
+endmacro()
+
+zlib_tester( example example "" "" "" "example-result.txt" )
+
+zlib_tester( minigzip minigzip 
+	"-d;${CMAKE_CURRENT_BINARY_DIR}/foo.gz" 
+	"${CMAKE_CURRENT_BINARY_DIR}/foo" 
+	"68656C6C6F2C2068656C6C6F2100" "minigzip-result.txt" 
+)
+68656c6c6f2c2068656c6c6f2100
+68656C6C6F2C2068656C6C6F2100
