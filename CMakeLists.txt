@@ -4,6 +4,7 @@
 ###############################################################################
 
 cmake_minimum_required(VERSION 3.0.0)
+<<<<<<< HEAD
 
 
 
@@ -26,6 +27,8 @@ set(LEPTONICA_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR})
 set(LEPTONICA_LIBRARIE ${CMAKE_CURRENT_SOURCE_DIR})
 set(LEPTONICA_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
+=======
+>>>>>>> 3rdlibs
 
 
 ###############################################################################
