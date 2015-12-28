@@ -3,7 +3,29 @@
 # cmake settings
 ###############################################################################
 
-cmake_minimum_required(VERSION 3.4.0)
+cmake_minimum_required(VERSION 3.0.0)
+
+
+
+###############################################################################
+# configuration
+###############################################################################
+
+enable_testing()
+ENABLE_LANGUAGE(C)
+
+include(TestBigEndian)
+include(CheckTypeSize)
+include(CheckIncludeFile)
+include(CheckFunctionExists)
+include(CheckCSourceCompiles)
+
+check_function_exists(snprintf HAVE_SNPRINTF)
+
+set(LEPTONICA_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR})
+set(LEPTONICA_LIBRARIE ${CMAKE_CURRENT_SOURCE_DIR})
+set(LEPTONICA_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
 
 
 ###############################################################################
@@ -28,25 +50,17 @@ if(MSVC)
 	endif()
 endif()
 
-
-###############################################################################
-# configuration
-###############################################################################
-
-include(CheckTypeSize)
-include(CheckIncludeFile)
-include(CheckFunctionExists)
-include(CheckCSourceCompiles)
-
-set(LEPTONICA_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR})
-set(LEPTONICA_LIBRARIE ${CMAKE_CURRENT_SOURCE_DIR})
-set(LEPTONICA_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+if( HAVE_SNPRINTF )
+	add_definitions( -DHAVE_SNPRINTF )
+endif()
 
 ###############################################################################
 # library settings
 ###############################################################################
 
-set(LEPTONICA liblept)
+if( NOT LEPTONICA )
+	set(LEPTONICA liblept)
+endif()
 project(${LEPTONICA} C)
 set(LEPTONICA_VERSION "1.72")
 
