@@ -54,6 +54,8 @@ if( HAVE_SNPRINTF )
 	add_definitions( -DHAVE_SNPRINTF )
 endif()
 
+
+
 ###############################################################################
 # library settings
 ###############################################################################
@@ -73,6 +75,7 @@ include_directories(
 	"${${LEPTONICA}_SOURCE_DIR}" "${${LEPTONICA}_BINARY_DIR}"
 	${LEPTONICA_DIRECTORY}/src
 )
+
 
 
 ###############################################################################
