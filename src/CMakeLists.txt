@@ -80,13 +80,13 @@ set( SOURCES
 	zlibmem.c zlibmemstub.c
 )
 
-# The definitions
-if(MSVC)
-	add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
-endif()
-
 # Set up the library
-add_library(${LEPTONICA} STATIC ${SOURCES} ${HEADERS} ${LIBRARY_HEADERS})
+if( NOT LEPTONICA_LIBRARIE_TYPE )
+	# Compile a SHARED library if the type is not specified.
+	set(LEPTONICA_LIBRARIE_TYPE "SHARED")
+endif()
+add_library(${LEPTONICA} ${LEPTONICA_LIBRARIE_TYPE} 
+	${SOURCES} ${HEADERS} ${LIBRARY_HEADERS})
 target_link_libraries(${LEPTONICA} ${ZLIB} ${PNG} ${TIFF} ${JPEG})
 
 # Set properties on the target.
