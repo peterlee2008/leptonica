@@ -80,14 +80,17 @@ set( SOURCES
 	zlibmem.c zlibmemstub.c
 )
 
-# Set up the library
+# Default is to Compile a SHARED library
 if( NOT LEPTONICA_LIBRARIE_TYPE )
-	# Compile a SHARED library if the type is not specified.
 	set(LEPTONICA_LIBRARIE_TYPE "SHARED")
 endif()
 add_library(${LEPTONICA} ${LEPTONICA_LIBRARIE_TYPE} 
 	${SOURCES} ${HEADERS} ${LIBRARY_HEADERS})
 target_link_libraries(${LEPTONICA} ${ZLIB} ${PNG} ${TIFF} ${JPEG})
+if( NOT TESSERACT_LIBRARY_TYPE STREQUAL "STATIC" )
+	# Export all interfaces if we compile a shared library
+	target_compile_definitions(${LEPTONICA} PUBLIC -DLIBLEPT_EXPORTS)
+endif()
 
 # Set properties on the target.
 set_target_properties(${LEPTONICA} PROPERTIES PREFIX "")

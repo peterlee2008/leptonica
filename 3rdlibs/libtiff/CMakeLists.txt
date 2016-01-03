@@ -286,5 +286,8 @@ endif()
 # program settings
 ###############################################################################
 
-add_subdirectory( contrib/tools )
-add_subdirectory( contrib/test )
+# Build all test programs if LEPTONICA is not a sub-project
+if(${CMAKE_SOURCE_DIR} STREQUAL ${LEPTONICA_DIRECTORY})
+	add_subdirectory( contrib/tools )
+	add_subdirectory( contrib/test )
+endif()

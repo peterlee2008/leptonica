@@ -201,4 +201,7 @@ set_target_properties(${JPEG} PROPERTIES LIBRARY_OUTPUT_NAME ${JPEG})
 # program settings
 ###############################################################################
 
-add_subdirectory( contrib/tools )
+# Build all test programs if LEPTONICA is not a sub-project
+if(${CMAKE_SOURCE_DIR} STREQUAL ${LEPTONICA_DIRECTORY})
+	add_subdirectory( contrib/tools )
+endif()

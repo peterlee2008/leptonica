@@ -96,34 +96,39 @@ endif()
 # program settings
 ###############################################################################
 
-add_executable(example contrib/test/example.c)
-target_link_libraries(example ${ZLIB})
+# Build all test programs if LEPTONICA is not a sub-project
+if(${CMAKE_SOURCE_DIR} STREQUAL ${LEPTONICA_DIRECTORY})
 
-add_executable(minigzip contrib/test/minigzip.c)
-target_link_libraries(minigzip ${ZLIB})
+	add_executable(example contrib/test/example.c)
+	target_link_libraries(example ${ZLIB})
 
-if(HAVE_OFF64_T)
-	# For 64bit, we should define _FILE_OFFSET_BITS.
-	set_target_properties(
-		example PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_BITS=64")
-	set_target_properties(
-		minigzip PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_BITS=64")
-endif()
+	add_executable(minigzip contrib/test/minigzip.c)
+	target_link_libraries(minigzip ${ZLIB})
 
-macro(zlib_tester name program args source digest output)
-	add_test(NAME "${name}" COMMAND "${CMAKE_COMMAND}"
-		"-DPROGRAM=$<TARGET_FILE:${program}>"
-		"-DARGS=${args}" 
-		"-DSOURCE=${source}" "-DDIGEST=${digest}" 
-		"-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/${output}"
-		-P "${CMAKE_CURRENT_SOURCE_DIR}/zlibtester.cmake"
+	if(HAVE_OFF64_T)
+		# For 64bit, we should define _FILE_OFFSET_BITS.
+		set_target_properties(
+			example PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_BITS=64")
+		set_target_properties(
+			minigzip PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_BITS=64")
+	endif()
+
+	macro(zlib_tester name program args source digest output)
+		add_test(NAME "${name}" COMMAND "${CMAKE_COMMAND}"
+			"-DPROGRAM=$<TARGET_FILE:${program}>"
+			"-DARGS=${args}" 
+			"-DSOURCE=${source}" "-DDIGEST=${digest}" 
+			"-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/${output}"
+			-P "${CMAKE_CURRENT_SOURCE_DIR}/zlibtester.cmake"
+		)
+	endmacro()
+
+	zlib_tester( example example "" "" "" "example-result.txt" )
+
+	zlib_tester( minigzip minigzip 
+		"-d;${CMAKE_CURRENT_BINARY_DIR}/foo.gz" 
+		"${CMAKE_CURRENT_BINARY_DIR}/foo" 
+		"4C23A67F52D131D98E1FFEA31EE6CCD6" "minigzip-result.txt" 
 	)
-endmacro()
-
-zlib_tester( example example "" "" "" "example-result.txt" )
-
-zlib_tester( minigzip minigzip 
-	"-d;${CMAKE_CURRENT_BINARY_DIR}/foo.gz" 
-	"${CMAKE_CURRENT_BINARY_DIR}/foo" 
-	"4C23A67F52D131D98E1FFEA31EE6CCD6" "minigzip-result.txt" 
-)
+	
+endif()

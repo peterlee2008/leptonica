@@ -86,7 +86,7 @@ include(cmake/LoadLibs.cmake)	# Here, we load all libraries
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/src")	# Build the library
 
 # The configuration file and included directories
-include_directories(
+include_directories( 
 	"${${LEPTONICA}_SOURCE_DIR}" "${${LEPTONICA}_BINARY_DIR}"
 	"${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/src"
 	"${CMAKE_CURRENT_SOURCE_DIR}/prog" "${CMAKE_CURRENT_BINARY_DIR}/prog"
@@ -102,3 +102,4 @@ include_directories(
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
 	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/prog")	# Build programs
 endif()
+

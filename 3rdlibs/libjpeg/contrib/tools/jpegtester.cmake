@@ -1,5 +1,4 @@
 
-
 execute_process( 
 	COMMAND ${MEMCHECK} ${PROGRAM} ${ARGS}
 	OUTPUT_FILE "${OUTPUT}" RESULT_VARIABLE TEST_STATUS )
@@ -22,7 +21,7 @@ if( SOURCE AND TARGET )
 	string( TOLOWER ${SOURCE} SOURCE )
 	string( TOLOWER ${TARGET} TARGET )
 	if( ${SOURCE} STREQUAL ${TARGET} )
-		message( STATUS "Test Passed!" )
+		message( STATUS "Test Passed, The data we test is OK, Job done!" )
 	else()
 		message( FATAL_ERROR "Test Failed, Data corruption is detected!" )
 	endif()

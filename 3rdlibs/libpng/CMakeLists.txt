@@ -96,49 +96,54 @@ endif()
 # program settings
 ###############################################################################
 
-#
-add_executable(pngvalid contrib/libtests/pngvalid.c)
-target_link_libraries(pngvalid ${PNG})
-add_test(pngvalid pngvalid)
+# Build all test programs if LEPTONICA is not a sub-project
+if(${CMAKE_SOURCE_DIR} STREQUAL ${LEPTONICA_DIRECTORY})
+	
+	#
+	add_executable(pngvalid contrib/libtests/pngvalid.c)
+	target_link_libraries(pngvalid ${PNG})
+	add_test(NAME pngvalid COMMAND pngvalid)
+	
+	#
+	add_executable(pngstest contrib/libtests/pngstest.c)
+	target_link_libraries(pngstest ${PNG})
+	add_test(NAME pngstest COMMAND pngstest
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn0g01.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn0g02.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn0g04.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn0g08.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn0g16.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn2c08.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn2c16.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn3p01.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn3p02.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn3p04.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn3p08.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn4a08.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn4a16.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn6a08.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn6a16.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbbn0g01.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbbn0g02.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbbn0g04.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbbn2c16.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbbn3p08.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbgn2c16.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbgn3p08.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbrn2c08.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbwn0g16.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbwn3p08.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbyn3p08.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftp0n0g08.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftp0n2c08.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftp0n3p08.png"
+		"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftp1n3p08.png"
+	)
 
-#
-add_executable(pngstest contrib/libtests/pngstest.c)
-target_link_libraries(pngstest ${PNG})
-add_test(pngstest pngstest
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn0g01.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn0g02.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn0g04.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn0g08.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn0g16.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn2c08.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn2c16.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn3p01.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn3p02.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn3p04.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn3p08.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn4a08.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn4a16.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn6a08.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/basn6a16.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbbn0g01.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbbn0g02.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbbn0g04.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbbn2c16.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbbn3p08.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbgn2c16.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbgn3p08.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbrn2c08.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbwn0g16.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbwn3p08.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftbyn3p08.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftp0n0g08.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftp0n2c08.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftp0n3p08.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/contrib/pngsuite/ftp1n3p08.png"
-)
+	# Does not work with msvc due to png_lib_ver issue
+	add_executable(pngtest pngtest.c)
+	target_link_libraries(pngtest ${PNG})
+	add_test(NAME pngtest COMMAND pngtest
+		"${CMAKE_CURRENT_SOURCE_DIR}/pngtest.png")
 
-# Does not work with msvc due to png_lib_ver issue
-add_executable(pngtest pngtest.c)
-target_link_libraries(pngtest ${PNG})
-add_test(pngtest pngtest "${CMAKE_CURRENT_SOURCE_DIR}/pngtest.png")
-
+endif()
