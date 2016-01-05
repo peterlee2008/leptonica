@@ -49,10 +49,14 @@
 #include <math.h>
 #include "allheaders.h"
 
-static const l_int32  L_BUF_SIZE = 512;
+#if defined(_WIN32) && defined(_MSC_VER)
+	#define	L_BUF_SIZE					512
+#else
+	static const l_int32 L_BUF_SIZE	=	512;
+#endif
 
-    /* Linear brick sel sizes, including all those that are required
-     * for decomposable sels up to size 63. */
+/* Linear brick sel sizes, including all those that are required
+ * for decomposable sels up to size 63. */
 static const l_int32  num_linear = 25;
 static const l_int32  basic_linear[] = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
        12, 13, 14, 15, 20, 21, 25, 30, 31, 35, 40, 41, 45, 50, 51};
@@ -74,82 +78,82 @@ static const l_int32  basic_linear[] = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
 SELA *
 selaAddBasic(SELA  *sela)
 {
-char     name[L_BUF_SIZE];
-l_int32  i, size;
-SEL     *sel;
+	SEL     *sel;
+	l_int32  i, size;
+	char     name[L_BUF_SIZE];
 
-    PROCNAME("selaAddBasic");
+	PROCNAME("selaAddBasic");
 
-    if (!sela) {
-        if ((sela = selaCreate(0)) == NULL)
-            return (SELA *)ERROR_PTR("sela not made", procName, NULL);
-    }
+	if (!sela) {
+		if ((sela = selaCreate(0)) == NULL)
+			return (SELA *)ERROR_PTR("sela not made", procName, NULL);
+	}
 
-    /*--------------------------------------------------------------*
-     *             Linear horizontal and vertical sels              *
-     *--------------------------------------------------------------*/
-    for (i = 0; i < num_linear; i++) {
-        size = basic_linear[i];
-        sel = selCreateBrick(1, size, 0, size / 2, 1);
-        snprintf(name, L_BUF_SIZE, "sel_%dh", size);
-        selaAddSel(sela, sel, name, 0);
-    }
-    for (i = 0; i < num_linear; i++) {
-        size = basic_linear[i];
-        sel = selCreateBrick(size, 1, size / 2, 0, 1);
-        snprintf(name, L_BUF_SIZE, "sel_%dv", size);
-        selaAddSel(sela, sel, name, 0);
-    }
+	/*--------------------------------------------------------------*
+	 *             Linear horizontal and vertical sels              *
+	 *--------------------------------------------------------------*/
+	for (i = 0; i < num_linear; i++) {
+		size = basic_linear[i];
+		sel = selCreateBrick(1, size, 0, size / 2, 1);
+		snprintf(name, L_BUF_SIZE, "sel_%dh", size);
+		selaAddSel(sela, sel, name, 0);
+	}
+	for (i = 0; i < num_linear; i++) {
+		size = basic_linear[i];
+		sel = selCreateBrick(size, 1, size / 2, 0, 1);
+		snprintf(name, L_BUF_SIZE, "sel_%dv", size);
+		selaAddSel(sela, sel, name, 0);
+	}
 
-    /*-----------------------------------------------------------*
-     *                      2-d Bricks                           *
-     *-----------------------------------------------------------*/
-    for (i = 2; i <= 5; i++) {
-        sel = selCreateBrick(i, i, i / 2, i / 2, 1);
-        snprintf(name, L_BUF_SIZE, "sel_%d", i);
-        selaAddSel(sela, sel, name, 0);
-    }
+	/*-----------------------------------------------------------*
+	 *                      2-d Bricks                           *
+	 *-----------------------------------------------------------*/
+	for (i = 2; i <= 5; i++) {
+		sel = selCreateBrick(i, i, i / 2, i / 2, 1);
+		snprintf(name, L_BUF_SIZE, "sel_%d", i);
+		selaAddSel(sela, sel, name, 0);
+	}
 
-    /*-----------------------------------------------------------*
-     *                        Diagonals                          *
-     *-----------------------------------------------------------*/
-        /*  0c  1
-            1   0  */
-    sel = selCreateBrick(2, 2, 0, 0, 1);
-    selSetElement(sel, 0, 0, 0);
-    selSetElement(sel, 1, 1, 0);
-    selaAddSel(sela, sel, "sel_2dp", 0);
+	/*-----------------------------------------------------------*
+	 *                        Diagonals                          *
+	 *-----------------------------------------------------------*/
+	/*  0c  1
+		1   0  */
+	sel = selCreateBrick(2, 2, 0, 0, 1);
+	selSetElement(sel, 0, 0, 0);
+	selSetElement(sel, 1, 1, 0);
+	selaAddSel(sela, sel, "sel_2dp", 0);
 
-        /*  1c  0
-            0   1   */
-    sel = selCreateBrick(2, 2, 0, 0, 1);
-    selSetElement(sel, 0, 1, 0);
-    selSetElement(sel, 1, 0, 0);
-    selaAddSel(sela, sel, "sel_2dm", 0);
+	/*  1c  0
+		0   1   */
+	sel = selCreateBrick(2, 2, 0, 0, 1);
+	selSetElement(sel, 0, 1, 0);
+	selSetElement(sel, 1, 0, 0);
+	selaAddSel(sela, sel, "sel_2dm", 0);
 
-        /*  Diagonal, slope +, size 5 */
-    sel = selCreate(5, 5, "sel_5dp");
-    sel->cy = 2;
-    sel->cx = 2;
-    selSetElement(sel, 0, 4, 1);
-    selSetElement(sel, 1, 3, 1);
-    selSetElement(sel, 2, 2, 1);
-    selSetElement(sel, 3, 1, 1);
-    selSetElement(sel, 4, 0, 1);
-    selaAddSel(sela, sel, "sel_5dp", 0);
+	/*  Diagonal, slope +, size 5 */
+	sel = selCreate(5, 5, "sel_5dp");
+	sel->cy = 2;
+	sel->cx = 2;
+	selSetElement(sel, 0, 4, 1);
+	selSetElement(sel, 1, 3, 1);
+	selSetElement(sel, 2, 2, 1);
+	selSetElement(sel, 3, 1, 1);
+	selSetElement(sel, 4, 0, 1);
+	selaAddSel(sela, sel, "sel_5dp", 0);
 
-        /*  Diagonal, slope -, size 5 */
-    sel = selCreate(5, 5, "sel_5dm");
-    sel->cy = 2;
-    sel->cx = 2;
-    selSetElement(sel, 0, 0, 1);
-    selSetElement(sel, 1, 1, 1);
-    selSetElement(sel, 2, 2, 1);
-    selSetElement(sel, 3, 3, 1);
-    selSetElement(sel, 4, 4, 1);
-    selaAddSel(sela, sel, "sel_5dm", 0);
+	/*  Diagonal, slope -, size 5 */
+	sel = selCreate(5, 5, "sel_5dm");
+	sel->cy = 2;
+	sel->cx = 2;
+	selSetElement(sel, 0, 0, 1);
+	selSetElement(sel, 1, 1, 1);
+	selSetElement(sel, 2, 2, 1);
+	selSetElement(sel, 3, 3, 1);
+	selSetElement(sel, 4, 4, 1);
+	selaAddSel(sela, sel, "sel_5dm", 0);
 
-    return sela;
+	return sela;
 }
 
 

@@ -27,17 +27,6 @@ check_include_file(stdint.h HAVE_STDINT_H)
 check_include_file(stddef.h HAVE_STDDEF_H)
 check_include_file(sys/types.h HAVE_SYS_TYPES_H)
 
-
-
-###############################################################################
-# compiler/linker
-###############################################################################
-# For MSVC compiler
-if(MSVC)
-	add_definitions(
-		-D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE )
-endif()
-
 if(NOT HAVE_FSEEKO)
 	add_definitions(-DNO_FSEEKO)
 endif()
@@ -46,6 +35,31 @@ if(HAVE_OFF64_T)
 	add_definitions(-D_LARGEFILE64_SOURCE=1)
 endif()
 
+
+
+###############################################################################
+# compiler/linker
+###############################################################################
+# For MSVC compiler
+if (MSVC)
+	# Enable Security Features
+	string(APPEND ${CMAKE_C_FLAGS} " /guard /GS /analyze")
+	string(APPEND ${CMAKE_SHARED_LINKER_FLAGS} " /SAFESEH /NXCOMPAT")
+	# Multithreaded building
+	if(MSVC_VERSION GREATER 1400)
+		set(PROCESSOR_COUNT "$ENV{NUMBER_OF_PROCESSORS}")
+		set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} /MP${PROCESSOR_COUNT}")
+	endif()
+endif()
+# For MINGW compiler
+if (MINGW)
+	string(APPEND ${CMAKE_C_FLAGS} " -fPIE -fstack-protector-all")
+	string(APPEND ${CMAKE_SHARED_LINKER_FLAGS} " -Wl,-z,now -Wl,-z,relro")
+endif()
+
+if (CYGWIN)
+    add_definitions(-D__CYGWIN__)
+endif()
 
 
 

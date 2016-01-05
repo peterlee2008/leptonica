@@ -140,10 +140,15 @@
 #endif  /* ! _WIN32 */
 #include "allheaders.h"
 
-static const l_int32  INITIAL_PTR_ARRAYSIZE = 50;     /* n'importe quoi */
-static const l_int32  L_BUF_SIZE = 512;
+#if defined(_WIN32) && defined(_MSC_VER)
+	#define INITIAL_PTR_ARRAYSIZE					50
+	#define L_BUF_SIZE								512
+#else
+	static const l_int32  INITIAL_PTR_ARRAYSIZE =	50;	/* n'importe quoi */
+	static const l_int32  L_BUF_SIZE			=	512;
+#endif
 
-    /* Static function */
+/* Static function */
 static l_int32 sarrayExtendArray(SARRAY *sa);
 
 

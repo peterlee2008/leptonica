@@ -78,24 +78,21 @@
  *      Return: 0 if OK, 1 on error
  */
 l_int32
-boxContains(BOX     *box1,
-            BOX     *box2,
-            l_int32 *presult)
+boxContains(BOX *box1, BOX *box2, l_int32 *presult)
 {
-    PROCNAME("boxContains");
+	PROCNAME("boxContains");
+	l_int32  x1, y1, w1, h1, x2, y2, w2, h2;
 
-    if (!box1 || !box2)
-        return ERROR_INT("box1 and box2 not both defined", procName, 1);
+	if (!box1 || !box2)
+		return ERROR_INT("box1 and box2 not both defined", procName, 1);
 
-l_int32  x1, y1, w1, h1, x2, y2, w2, h2;
-
-    boxGetGeometry(box1, &x1, &y1, &w1, &h1);
-    boxGetGeometry(box2, &x2, &y2, &w2, &h2);
-    if (x1 <= x2 && y1 <= y2 && (x1 + w1 >= x2 + w2) && (y1 + h1 >= y2 + h2))
-        *presult = 1;
-    else
-        *presult = 0;
-    return 0;
+	boxGetGeometry(box1, &x1, &y1, &w1, &h1);
+	boxGetGeometry(box2, &x2, &y2, &w2, &h2);
+	if (x1 <= x2 && y1 <= y2 && (x1 + w1 >= x2 + w2) && (y1 + h1 >= y2 + h2))
+		*presult = 1;
+	else
+		*presult = 0;
+	return 0;
 }
 
 

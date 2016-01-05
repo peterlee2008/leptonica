@@ -186,11 +186,9 @@
 #include <sys/types.h>
 #endif
 
-
 #include <stddef.h>
 
-
-    /* Global for controlling message output at runtime */
+/* Global for controlling message output at runtime */
 LEPT_DLL l_int32  LeptMsgSeverity = DEFAULT_SEVERITY;
 
 
@@ -215,27 +213,27 @@ LEPT_DLL l_int32  LeptMsgSeverity = DEFAULT_SEVERITY;
 l_int32
 setMsgSeverity(l_int32  newsev)
 {
-l_int32  oldsev;
-char    *envsev;
+	l_int32  oldsev;
+	char    *envsev;
 
-    PROCNAME("setMsgSeverity");
+	PROCNAME("setMsgSeverity");
 
-    oldsev = LeptMsgSeverity;
-    if (newsev == L_SEVERITY_EXTERNAL) {
-        envsev = getenv("LEPT_MSG_SEVERITY");
-        if (envsev) {
-            LeptMsgSeverity = atoi(envsev);
-            L_INFO("message severity set to external\n", procName);
-        } else {
-            L_WARNING("environment var LEPT_MSG_SEVERITY not defined\n",
-                      procName);
-        }
-    } else {
-        LeptMsgSeverity = newsev;
-        L_INFO("message severity set to %d\n", procName, newsev);
-    }
+	oldsev = LeptMsgSeverity;
+	if (newsev == L_SEVERITY_EXTERNAL) {
+		envsev = getenv("LEPT_MSG_SEVERITY");
+		if (envsev) {
+			LeptMsgSeverity = atoi(envsev);
+			L_INFO("message severity set to external\n", procName);
+		} else {
+			L_WARNING("environment var LEPT_MSG_SEVERITY not defined\n",
+					  procName);
+		}
+	} else {
+		LeptMsgSeverity = newsev;
+		L_INFO("message severity set to %d\n", procName, newsev);
+	}
 
-    return oldsev;
+	return oldsev;
 }
 
 
@@ -315,22 +313,22 @@ returnErrorPtr(const char  *msg,
 char *
 stringNew(const char  *src)
 {
-l_int32  len;
-char    *dest;
+	l_int32  len;
+	char    *dest;
 
-    PROCNAME("stringNew");
+	PROCNAME("stringNew");
 
-    if (!src) {
-        L_WARNING("src not defined\n", procName);
-        return NULL;
-    }
+	if (!src) {
+		L_WARNING("src not defined\n", procName);
+		return NULL;
+	}
 
-    len = strlen(src);
-    if ((dest = (char *)CALLOC(len + 1, sizeof(char))) == NULL)
-        return (char *)ERROR_PTR("dest not made", procName, NULL);
+	len = strlen(src);
+	if ((dest = (char *)CALLOC(len + 1, sizeof(char))) == NULL)
+		return (char *)ERROR_PTR("dest not made", procName, NULL);
 
-    stringCopy(dest, src, len);
-    return dest;
+	stringCopy(dest, src, len);
+	return dest;
 }
 
 
@@ -2082,32 +2080,31 @@ char    *newpath;
  *            ==>  <Temp>/leptonica  (windows)
  */
 void
-lept_direxists(const char  *dir,
-               l_int32     *pexists)
+lept_direxists(const char *dir, l_int32 *pexists)
 {
-char  *realdir;
+	char  *realdir;
 
-    if (!pexists) return;
-    *pexists = 0;
-    if (!dir) return;
-    if ((realdir = genPathname(dir, NULL)) == NULL)
-        return;
+	if (!pexists) return;
+	*pexists = 0;
+	if (!dir) return;
+	if ((realdir = genPathname(dir, NULL)) == NULL) return;
 
 #ifndef _WIN32
     {
-    struct stat s;
-    l_int32 err = stat(realdir, &s);
-    if (err != -1 && S_ISDIR(s.st_mode))
-        *pexists = 1;
+		struct stat s;
+		l_int32 err = stat(realdir, &s);
+		if (err != -1 && S_ISDIR(s.st_mode)) *pexists = 1;
     }
-#else  /* _WIN32 */
-    l_uint32  attributes;
-    attributes = GetFileAttributes(realdir);
-    if (attributes != INVALID_FILE_ATTRIBUTES &&
-        (attributes & FILE_ATTRIBUTE_DIRECTORY)) {
-        *pexists = 1;
-    }
-#endif  /* _WIN32 */
+#else	/* _WIN32 */
+	{
+		l_uint32  attributes;
+		attributes = GetFileAttributes(realdir);
+		if (attributes != INVALID_FILE_ATTRIBUTES &&
+			(attributes & FILE_ATTRIBUTE_DIRECTORY)) {
+			*pexists = 1;
+		}
+	}
+#endif	/* _WIN32 */
 
     FREE(realdir);
     return;

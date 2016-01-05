@@ -32,60 +32,63 @@
 
 static void PixCompare(PIX *pix, PIX *pix2, const char *msg1, const char *msg2);
 
-    /* MSVC can't handle arrays dimensioned by static const integers */
-#define L_BUF_SIZE    256
+/* MSVC can't handle arrays dimensioned by static const integers */
+#if defined(_WIN32) && defined(_MSC_VER)
+	#define	L_BUF_SIZE				   256
+#else
+	static const l_int32  L_BUF_SIZE = 256;
+#endif
 
 
-int main(int    argc,
-         char **argv)
+int main(int argc, char **argv)
 {
-char        *filein;
-char         buf[L_BUF_SIZE];
-l_int32      size;
-PIX         *pixs, *pixt1, *pixt2;
-static char  mainName[] = "colormorphtest";
+	char        *filein;
+	char         buf[L_BUF_SIZE];
+	l_int32      size;
+	PIX         *pixs, *pixt1, *pixt2;
+	static char  mainName[] = "colormorphtest";
 
-    if (argc != 3)
-        return ERROR_INT(" Syntax:  colormorphtest filein size", mainName, 1);
+	if (argc != 3)
+		return ERROR_INT(" Syntax:  colormorphtest filein size", mainName, 1);
 
-    filein = argv[1];
-    size = atoi(argv[2]);
-    if (size % 2 == 0) size++;
-    if ((pixs = pixRead(filein)) == NULL)
-        return ERROR_INT("pixs not read", mainName, 1);
+	filein = argv[1];
+	size = atoi(argv[2]);
+	if (size % 2 == 0) size++;
+	if ((pixs = pixRead(filein)) == NULL)
+		return ERROR_INT("pixs not read", mainName, 1);
 
-    pixt1 = pixColorMorph(pixs, L_MORPH_DILATE, size, size);
-    sprintf(buf, "d%d.%d", size, size);
-    pixt2 = pixColorMorphSequence(pixs, buf, 0, 0);
-    PixCompare(pixt1, pixt2, "Correct for dilation", "Error on dilation");
-    pixDestroy(&pixt1);
-    pixDestroy(&pixt2);
+	pixt1 = pixColorMorph(pixs, L_MORPH_DILATE, size, size);
+	sprintf(buf, "d%d.%d", size, size);
+	pixt2 = pixColorMorphSequence(pixs, buf, 0, 0);
+	PixCompare(pixt1, pixt2, "Correct for dilation", "Error on dilation");
+	pixDestroy(&pixt1);
+	pixDestroy(&pixt2);
 
-    pixt1 = pixColorMorph(pixs, L_MORPH_ERODE, size, size);
-    sprintf(buf, "e%d.%d", size, size);
-    pixt2 = pixColorMorphSequence(pixs, buf, 0, 0);
-    PixCompare(pixt1, pixt2, "Correct for erosion", "Error on erosion");
-    pixDestroy(&pixt1);
-    pixDestroy(&pixt2);
+	pixt1 = pixColorMorph(pixs, L_MORPH_ERODE, size, size);
+	sprintf(buf, "e%d.%d", size, size);
+	pixt2 = pixColorMorphSequence(pixs, buf, 0, 0);
+	PixCompare(pixt1, pixt2, "Correct for erosion", "Error on erosion");
+	pixDestroy(&pixt1);
+	pixDestroy(&pixt2);
 
-    pixt1 = pixColorMorph(pixs, L_MORPH_OPEN, size, size);
-    sprintf(buf, "o%d.%d", size, size);
-    pixt2 = pixColorMorphSequence(pixs, buf, 0, 0);
-    PixCompare(pixt1, pixt2, "Correct for opening", "Error on opening");
-    pixDestroy(&pixt1);
-    pixDestroy(&pixt2);
+	pixt1 = pixColorMorph(pixs, L_MORPH_OPEN, size, size);
+	sprintf(buf, "o%d.%d", size, size);
+	pixt2 = pixColorMorphSequence(pixs, buf, 0, 0);
+	PixCompare(pixt1, pixt2, "Correct for opening", "Error on opening");
+	pixDestroy(&pixt1);
+	pixDestroy(&pixt2);
 
-    pixt1 = pixColorMorph(pixs, L_MORPH_CLOSE, size, size);
-    sprintf(buf, "c%d.%d", size, size);
-    pixt2 = pixColorMorphSequence(pixs, buf, 0, 0);
-    PixCompare(pixt1, pixt2, "Correct for closing", "Error on closing");
-    pixDestroy(&pixt1);
-    pixDestroy(&pixt2);
+	pixt1 = pixColorMorph(pixs, L_MORPH_CLOSE, size, size);
+	sprintf(buf, "c%d.%d", size, size);
+	pixt2 = pixColorMorphSequence(pixs, buf, 0, 0);
+	PixCompare(pixt1, pixt2, "Correct for closing", "Error on closing");
+	pixDestroy(&pixt1);
+	pixDestroy(&pixt2);
 
-    pixDisplayMultiple("/tmp/display/file*");
+	pixDisplayMultiple("/tmp/display/file*");
 
-    pixDestroy(&pixs);
-    return 0;
+	pixDestroy(&pixs);
+	return 0;
 }
 
     /* Simple comparison function */

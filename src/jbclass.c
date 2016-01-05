@@ -206,36 +206,53 @@
 #include <math.h>
 #include "allheaders.h"
 
-static const l_int32  L_BUF_SIZE = 512;
+/* MSVC can't handle arrays dimensioned by static const integers */
+#if defined(_WIN32) && defined(_MSC_VER)
 
-    /* For jbClassifyRankHaus(): size of border added around
-     * pix of each c.c., to allow further processing.  This
-     * should be at least the sum of the MAX_DIFF_HEIGHT
-     * (or MAX_DIFF_WIDTH) and one-half the size of the Sel  */
+#define	L_BUF_SIZE						512
+#define JB_ADDED_PIXELS					6
+#define MAX_DIFF_WIDTH					2
+#define MAX_DIFF_HEIGHT					2
+#define MAX_COMP_HEIGHT					120
+#define MAX_CONN_COMP_WIDTH				350
+#define MAX_CHAR_COMP_WIDTH				350
+#define MAX_WORD_COMP_WIDTH				1000
+#define MAX_ALLOWED_DILATION			25
+	
+#else
+
+static const l_int32  L_BUF_SIZE =	512;
+
+/* For jbClassifyRankHaus(): size of border added around
+ * pix of each c.c., to allow further processing.  This
+ * should be at least the sum of the MAX_DIFF_HEIGHT
+ * (or MAX_DIFF_WIDTH) and one-half the size of the Sel  */
 static const l_int32  JB_ADDED_PIXELS = 6;
 
-    /* For pixHaustest(), pixRankHaustest() and pixCorrelationScore():
-     * choose these to be 2 or greater */
+/* For pixHaustest(), pixRankHaustest() and pixCorrelationScore():
+ * choose these to be 2 or greater */
 static const l_int32  MAX_DIFF_WIDTH = 2;  /* use at least 2 */
 static const l_int32  MAX_DIFF_HEIGHT = 2;  /* use at least 2 */
 
-    /* In initialization, you have the option to discard components
-     * (cc, characters or words) that have either width or height larger
-     * than a given size.  This is convenient for jbDataSave(), because
-     * the components are placed onto a regular lattice with cell
-     * dimension equal to the maximum component size.  The default
-     * values are given here.  If you want to save all components,
-     * use a sufficiently large set of dimensions. */
+/* In initialization, you have the option to discard components
+ * (cc, characters or words) that have either width or height larger
+ * than a given size.  This is convenient for jbDataSave(), because
+ * the components are placed onto a regular lattice with cell
+ * dimension equal to the maximum component size.  The default
+ * values are given here.  If you want to save all components,
+ * use a sufficiently large set of dimensions. */
 static const l_int32  MAX_CONN_COMP_WIDTH = 350;  /* default max cc width */
 static const l_int32  MAX_CHAR_COMP_WIDTH = 350;  /* default max char width */
 static const l_int32  MAX_WORD_COMP_WIDTH = 1000;  /* default max word width */
 static const l_int32  MAX_COMP_HEIGHT = 120;  /* default max component height */
 
-    /* Max allowed dilation to merge characters into words */
+/* Max allowed dilation to merge characters into words */
 static const l_int32  MAX_ALLOWED_DILATION = 25;
 
-    /* This stores the state of a state machine which fetches
-     * similar sized templates */
+#endif
+
+/* This stores the state of a state machine which fetches
+ * similar sized templates */
 struct JbFindTemplatesState
 {
     JBCLASSER       *classer;    /* classer                               */
@@ -247,12 +264,12 @@ struct JbFindTemplatesState
 };
 typedef struct JbFindTemplatesState JBFINDCTX;
 
-    /* Static initialization function */
+/* Static initialization function */
 static JBCLASSER * jbCorrelationInitInternal(l_int32 components,
                        l_int32 maxwidth, l_int32 maxheight, l_float32 thresh,
                        l_float32 weightfactor, l_int32 keep_components);
 
-    /* Static helper functions */
+/* Static helper functions */
 static JBFINDCTX * findSimilarSizedTemplatesInit(JBCLASSER *classer, PIX *pixs);
 static l_int32 findSimilarSizedTemplatesNext(JBFINDCTX *context);
 static void findSimilarSizedTemplatesDestroy(JBFINDCTX **pcontext);
@@ -1415,101 +1432,98 @@ PIXA      *pixa, *pixat;
  *      (3) The best size for dilating to get word masks is optionally returned.
  */
 l_int32
-pixWordMaskByDilation(PIX      *pixs,
-                      l_int32   maxdil,
-                      PIX     **ppixm,
-                      l_int32  *psize)
+pixWordMaskByDilation(PIX *pixs, l_int32 maxdil, PIX **ppixm, l_int32 *psize)
 {
-l_int32  i, diffmin, ndiff, imin;
-l_int32  ncc[MAX_ALLOWED_DILATION + 1];
-BOXA    *boxa;
-NUMA    *nacc, *nadiff;
-PIX     *pix1, *pix2;
+	BOXA	*boxa;
+	PIX		*pix1, *pix2;
+	NUMA	*nacc, *nadiff;
+	l_int32	i, diffmin, ndiff, imin;
+	l_int32	ncc[MAX_ALLOWED_DILATION + 1];
 
-    PROCNAME("pixWordMaskByDilation");
+	PROCNAME("pixWordMaskByDilation");
 
-    if (ppixm) *ppixm = NULL;
-    if (psize) *psize = 0;
-    if (!pixs || pixGetDepth(pixs) != 1)
-        return ERROR_INT("pixs undefined or not 1 bpp", procName, 1);
-    if (!ppixm && !psize)
-        return ERROR_INT("no output requested", procName, 1);
+	if (ppixm) *ppixm = NULL;
+	if (psize) *psize = 0;
+	if (!pixs || pixGetDepth(pixs) != 1)
+		return ERROR_INT("pixs undefined or not 1 bpp", procName, 1);
+	if (!ppixm && !psize)
+		return ERROR_INT("no output requested", procName, 1);
 
-        /* Find the optimal dilation to create the word mask.
-         * Look for successively increasing dilations where the
-         * number of connected components doesn't decrease.
-         * This is the situation where the components in the
-         * word mask should properly cover each word.  If the
-         * input image had been 2x scaled, and you use 8 cc for
-         * counting, every other differential count in the series
-         * will be 0.  We avoid this possibility by using 4 cc. */
-    diffmin = 1000000;
-    pix1 = pixCopy(NULL, pixs);
-    if (maxdil <= 0)
-        maxdil = 16;  /* default for 200 to 300 ppi */
-    maxdil = L_MIN(maxdil, MAX_ALLOWED_DILATION);
-    if (maxdil > 20)
-        L_WARNING("large dilation: exceeds 20\n", procName);
-    nacc = numaCreate(maxdil + 1);
-    nadiff = numaCreate(maxdil + 1);
-    for (i = 0; i <= maxdil; i++) {
-        if (i == 0)  /* first one not dilated */
-            pix2 = pixCopy(NULL, pix1);
-        else  /* successive dilation by sel_2h */
-            pix2 = pixMorphSequence(pix1, "d2.1", 0);
-        boxa = pixConnCompBB(pix2, 4);
-        ncc[i] = boxaGetCount(boxa);
-        numaAddNumber(nacc, ncc[i]);
-        if (i > 0) {
-            ndiff = ncc[i - 1] - ncc[i];
-            numaAddNumber(nadiff, ndiff);
-#if  DEBUG_PLOT_CC
-            fprintf(stderr, "ndiff[%d] = %d\n", i - 1, ndiff);
-#endif  /* DEBUG_PLOT_CC */
-                /* Don't allow imin <= 2 with a 0 value of ndiff,
-                 * which is unlikely to happen.  */
-            if (ndiff < diffmin && (ndiff > 0 || i > 2)) {
-                imin = i;
-                diffmin = ndiff;
-            }
-        }
-        pixDestroy(&pix1);
-        pix1 = pix2;
-        boxaDestroy(&boxa);
-    }
-    pixDestroy(&pix1);
-    if (psize) *psize = imin + 1;
+		/* Find the optimal dilation to create the word mask.
+		 * Look for successively increasing dilations where the
+		 * number of connected components doesn't decrease.
+		 * This is the situation where the components in the
+		 * word mask should properly cover each word.  If the
+		 * input image had been 2x scaled, and you use 8 cc for
+		 * counting, every other differential count in the series
+		 * will be 0.  We avoid this possibility by using 4 cc. */
+	diffmin = 1000000;
+	pix1 = pixCopy(NULL, pixs);
+	if (maxdil <= 0)
+		maxdil = 16;  /* default for 200 to 300 ppi */
+	maxdil = L_MIN(maxdil, MAX_ALLOWED_DILATION);
+	if (maxdil > 20)
+		L_WARNING("large dilation: exceeds 20\n", procName);
+	nacc = numaCreate(maxdil + 1);
+	nadiff = numaCreate(maxdil + 1);
+	for (i = 0; i <= maxdil; i++) {
+		if (i == 0)  /* first one not dilated */
+			pix2 = pixCopy(NULL, pix1);
+		else  /* successive dilation by sel_2h */
+			pix2 = pixMorphSequence(pix1, "d2.1", 0);
+		boxa = pixConnCompBB(pix2, 4);
+		ncc[i] = boxaGetCount(boxa);
+		numaAddNumber(nacc, ncc[i]);
+		if (i > 0) {
+			ndiff = ncc[i - 1] - ncc[i];
+			numaAddNumber(nadiff, ndiff);
+#if DEBUG_PLOT_CC
+			fprintf(stderr, "ndiff[%d] = %d\n", i - 1, ndiff);
+#endif /* DEBUG_PLOT_CC */
+			/* Don't allow imin <= 2 with a 0 value of ndiff,
+			 * which is unlikely to happen.  */
+			if (ndiff < diffmin && (ndiff > 0 || i > 2)) {
+				imin = i;
+				diffmin = ndiff;
+			}
+		}
+		pixDestroy(&pix1);
+		pix1 = pix2;
+		boxaDestroy(&boxa);
+	}
+	pixDestroy(&pix1);
+	if (psize) *psize = imin + 1;
 
-#if  DEBUG_PLOT_CC
-    {GPLOT *gplot;
-     NUMA  *naseq;
-        L_INFO("Best dilation: %d\n", procName, imin);
-        naseq = numaMakeSequence(1, 1, numaGetCount(nacc));
-        gplot = gplotCreate("/tmp/numcc", GPLOT_PNG,
-                            "Number of cc vs. horizontal dilation",
-                            "Sel horiz", "Number of cc");
-        gplotAddPlot(gplot, naseq, nacc, GPLOT_LINES, "");
-        gplotMakeOutput(gplot);
-        gplotDestroy(&gplot);
-        numaDestroy(&naseq);
-        naseq = numaMakeSequence(1, 1, numaGetCount(nadiff));
-        gplot = gplotCreate("/tmp/diffcc", GPLOT_PNG,
-                            "Diff count of cc vs. horizontal dilation",
-                            "Sel horiz", "Diff in cc");
-        gplotAddPlot(gplot, naseq, nadiff, GPLOT_LINES, "");
-        gplotMakeOutput(gplot);
-        gplotDestroy(&gplot);
-        numaDestroy(&naseq);
-    }
-#endif  /* DEBUG_PLOT_CC */
+#if DEBUG_PLOT_CC
+    {
+		GPLOT *gplot; NUMA  *naseq;
+		L_INFO("Best dilation: %d\n", procName, imin);
+		naseq = numaMakeSequence(1, 1, numaGetCount(nacc));
+		gplot = gplotCreate("/tmp/numcc", GPLOT_PNG,
+							"Number of cc vs. horizontal dilation",
+							"Sel horiz", "Number of cc");
+		gplotAddPlot(gplot, naseq, nacc, GPLOT_LINES, "");
+		gplotMakeOutput(gplot);
+		gplotDestroy(&gplot);
+		numaDestroy(&naseq);
+		naseq = numaMakeSequence(1, 1, numaGetCount(nadiff));
+		gplot = gplotCreate("/tmp/diffcc", GPLOT_PNG,
+							"Diff count of cc vs. horizontal dilation",
+							"Sel horiz", "Diff in cc");
+		gplotAddPlot(gplot, naseq, nadiff, GPLOT_LINES, "");
+		gplotMakeOutput(gplot);
+		gplotDestroy(&gplot);
+		numaDestroy(&naseq);
+	}
+#endif	/* DEBUG_PLOT_CC */
 
-        /* Optionally, save the result of the optimal closing */
+	/* Optionally, save the result of the optimal closing */
     if (ppixm) {
-        if (imin < 3)
-            L_ERROR("imin = %d is too small\n", procName, imin);
-        else
-            *ppixm = pixCloseBrick(NULL, pixs, imin + 1, 1);
-    }
+		if (imin < 3)
+			L_ERROR("imin = %d is too small\n", procName, imin);
+		else
+			*ppixm = pixCloseBrick(NULL, pixs, imin + 1, 1);
+	}
 
     numaDestroy(&nacc);
     numaDestroy(&nadiff);

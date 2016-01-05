@@ -1,9 +1,10 @@
 
 
-
 ###############################################################################
 # program settings
 ###############################################################################
+
+add_definitions(-DLIBLEPT_IMPORTS)
 
 add_executable(adaptmap_dark adaptmap_dark.c ${LIBRARY_HEADERS})
 target_link_libraries(adaptmap_dark ${LEPTONICA})
@@ -1342,7 +1343,4 @@ target_link_libraries(xtractprotos ${LEPTONICA})
 
 add_executable(yuvtest yuvtest.c ${LIBRARY_HEADERS})
 target_link_libraries(yuvtest ${LEPTONICA})
-add_test(NAME yuvtest COMMAND yuvtest  
-         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
 

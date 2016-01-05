@@ -61,7 +61,7 @@
 #include <math.h>
 #include "allheaders.h"
 
-    /* Small enough to consider equal to 0.0, for plot output */
+/* Small enough to consider equal to 0.0, for plot output */
 static const l_float32  TINY = 0.00001;
 
 
@@ -1904,70 +1904,63 @@ pixBestCorrelation(PIX        *pix1,
                    l_float32  *pscore,
                    l_int32     debugflag)
 {
-l_int32    shiftx, shifty, delx, dely;
-l_int32   *tab;
-l_float32  maxscore, score;
-FPIX      *fpix;
-PIX       *pix3, *pix4;
+	l_float32 maxscore, score;
+	FPIX *fpix; PIX *pix3, *pix4;
+	l_int32 shiftx, shifty, delx, dely; l_int32 *tab;
 
-    PROCNAME("pixBestCorrelation");
+	PROCNAME("pixBestCorrelation");
 
-    if (pdelx) *pdelx = 0;
-    if (pdely) *pdely = 0;
-    if (pscore) *pscore = 0.0;
-    if (!pix1 || pixGetDepth(pix1) != 1)
-        return ERROR_INT("pix1 not defined or not 1 bpp", procName, 1);
-    if (!pix2 || pixGetDepth(pix2) != 1)
-        return ERROR_INT("pix2 not defined or not 1 bpp", procName, 1);
-    if (!area1 || !area2)
-        return ERROR_INT("areas must be > 0", procName, 1);
+	if (pdelx) *pdelx = 0;
+	if (pdely) *pdely = 0;
+	if (pscore) *pscore = 0.0;
+	if (!pix1 || pixGetDepth(pix1) != 1)
+		return ERROR_INT("pix1 not defined or not 1 bpp", procName, 1);
+	if (!pix2 || pixGetDepth(pix2) != 1)
+		return ERROR_INT("pix2 not defined or not 1 bpp", procName, 1);
+	if (!area1 || !area2)
+		return ERROR_INT("areas must be > 0", procName, 1);
 
-    if (debugflag > 0)
-        fpix = fpixCreate(2 * maxshift + 1, 2 * maxshift + 1);
+	if (debugflag > 0) 
+		fpix = fpixCreate(2 * maxshift + 1, 2 * maxshift + 1);
 
-    if (!tab8)
-        tab = makePixelSumTab8();
-    else
-        tab = tab8;
+	if (!tab8) tab = makePixelSumTab8();
+	else tab = tab8;
 
-        /* Search over a set of {shiftx, shifty} for the max */
-    maxscore = 0;
-    delx = etransx;
-    dely = etransy;
-    for (shifty = -maxshift; shifty <= maxshift; shifty++) {
-        for (shiftx = -maxshift; shiftx <= maxshift; shiftx++) {
-            pixCorrelationScoreShifted(pix1, pix2, area1, area2,
-                                       etransx + shiftx,
-                                       etransy + shifty, tab, &score);
-            if (debugflag > 0) {
-                fpixSetPixel(fpix, maxshift + shiftx, maxshift + shifty,
-                             1000.0 * score);
-/*                fprintf(stderr, "(sx, sy) = (%d, %d): score = %6.4f\n",
-                        shiftx, shifty, score); */
-            }
-            if (score > maxscore) {
-                maxscore = score;
-                delx = etransx + shiftx;
-                dely = etransy + shifty;
-            }
-        }
-    }
+	/* Search over a set of {shiftx, shifty} for the max */
+	maxscore = 0; delx = etransx; dely = etransy;
+	for (shifty = -maxshift; shifty <= maxshift; shifty++) {
+		for (shiftx = -maxshift; shiftx <= maxshift; shiftx++) {
+			pixCorrelationScoreShifted(
+				pix1, pix2, area1, area2, 
+				etransx+shiftx, etransy+shifty, tab, &score);
+			if (debugflag > 0) {
+				fpixSetPixel(fpix, maxshift + shiftx, maxshift + shifty,
+							 1000.0 * score);
+				/* fprintf(stderr, "(sx, sy) = (%d, %d): score = %6.4f\n",
+									shiftx, shifty, score); */
+			}
+			if (score > maxscore) {
+				maxscore = score; 
+				delx = etransx+shiftx; dely = etransy+shifty;
+			}
+		}
+	}
 
-    if (debugflag > 0) {
-        lept_mkdir("lept");
-        char  buf[128];
-        pix3 = fpixDisplayMaxDynamicRange(fpix);
-        pix4 = pixExpandReplicate(pix3, 20);
-        snprintf(buf, sizeof(buf), "/tmp/lept/correl_%d.png", debugflag);
-        pixWrite(buf, pix4, IFF_PNG);
-        pixDestroy(&pix3);
-        pixDestroy(&pix4);
-        fpixDestroy(&fpix);
-    }
+	if (debugflag > 0) {
+		char buf[128];
+		lept_mkdir("lept");
+		pix3 = fpixDisplayMaxDynamicRange(fpix);
+		pix4 = pixExpandReplicate(pix3, 20);
+		snprintf(buf, sizeof(buf), "/tmp/lept/correl_%d.png", debugflag);
+		pixWrite(buf, pix4, IFF_PNG);
+		pixDestroy(&pix3);
+		pixDestroy(&pix4);
+		fpixDestroy(&fpix);
+	}
 
-    if (pdelx) *pdelx = delx;
-    if (pdely) *pdely = dely;
-    if (pscore) *pscore = maxscore;
-    if (!tab8) FREE(tab);
-    return 0;
+	if (pdelx) *pdelx = delx;
+	if (pdely) *pdely = dely;
+	if (pscore) *pscore = maxscore;
+	if (!tab8) FREE(tab);
+	return 0;
 }

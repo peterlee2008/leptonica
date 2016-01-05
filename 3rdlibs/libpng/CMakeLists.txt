@@ -7,19 +7,27 @@ cmake_minimum_required(VERSION 3.0.0)
 ###############################################################################
 # compiler/linker
 ###############################################################################
-if (WIN32)
-    if (MSVC)
-		add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
-    endif()
+# For MSVC compiler
+if (MSVC)
+	# Enable Security Features
+	string(APPEND ${CMAKE_C_FLAGS} " /guard /GS /analyze")
+	string(APPEND ${CMAKE_SHARED_LINKER_FLAGS} " /SAFESEH /NXCOMPAT")
+	# Multithreaded building
+	if(MSVC_VERSION GREATER 1400)
+		set(PROCESSOR_COUNT "$ENV{NUMBER_OF_PROCESSORS}")
+		set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} /MP${PROCESSOR_COUNT}")
+	endif()
+endif()
+# For MINGW compiler
+if (MINGW)
+	string(APPEND ${CMAKE_C_FLAGS} " -fPIE -fstack-protector-all")
+	string(APPEND ${CMAKE_SHARED_LINKER_FLAGS} " -Wl,-z,now -Wl,-z,relro")
 endif()
 
 if (CYGWIN)
-    add_definitions(-D__CYGWIN__)
+	add_definitions(-D__CYGWIN__)
 endif()
 
-if(PNG_DEBUG)
-  add_definitions(-DPNG_DEBUG)
-endif()
 
 
 ###############################################################################
@@ -31,6 +39,11 @@ include(CheckTypeSize)
 include(CheckIncludeFile)
 include(CheckFunctionExists)
 include(CheckCSourceCompiles)
+
+if(PNG_DEBUG)
+	add_definitions(-DPNG_DEBUG)
+endif()
+
 
 
 ###############################################################################

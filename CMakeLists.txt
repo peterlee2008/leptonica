@@ -37,6 +37,9 @@ include(CheckFunctionExists)
 include(CheckCSourceCompiles)
 
 check_function_exists(snprintf HAVE_SNPRINTF)
+if( HAVE_SNPRINTF )
+	add_definitions( -DHAVE_SNPRINTF )	# Add this definition
+endif()
 
 set(LEPTONICA_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR})
 set(LEPTONICA_LIBRARIE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -48,26 +51,39 @@ set(LEPTONICA_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 # compiler/linker
 ###############################################################################
 
+macro(check_keyword_exists KEYWORD VARIABLE)
+	# See if compiler supports prototypes.
+	check_c_source_compiles(
+		"
+		${KEYWORD} int test() { return 0; }
+		int main(int argc, char **argv) { return test(); }
+		"
+		HAVE_${KEYWORD}
+	)
+	set(VARIABLE HAVE_${KEYWORD})
+endmacro()
+
 if (CYGWIN)
     add_definitions(-D__CYGWIN__)
 endif()
 
 if(MSVC)
-	add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
-	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd /Zi")
-	set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
-	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd /Zi")
+	check_keyword_exists(static HAVE_KEYWORD_INLINE)
+	if( NOT HAVE_KEYWORD_INLINE )
+		add_definitions( -Dinline=__inline )
+	endif()
+	# Enable Security Features
+	string(APPEND ${CMAKE_C_FLAGS} " /guard /GS /analyze")
+	string(APPEND ${CMAKE_SHARED_LINKER_FLAGS} " /SAFESEH /NXCOMPAT")
 	# Multithreaded building
 	if(MSVC_VERSION GREATER 1400)
 		set(PROCESSOR_COUNT "$ENV{NUMBER_OF_PROCESSORS}")
 		set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} /MP${PROCESSOR_COUNT}")
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP${PROCESSOR_COUNT}")
 	endif()
 endif()
-
-if( HAVE_SNPRINTF )
-	add_definitions( -DHAVE_SNPRINTF )
+if (MINGW)
+	string(APPEND ${CMAKE_C_FLAGS} " -fPIE -fstack-protector-all")
+	string(APPEND ${CMAKE_SHARED_LINKER_FLAGS} " -Wl,-z,now -Wl,-z,relro")
 endif()
 
 

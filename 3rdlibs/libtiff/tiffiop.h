@@ -57,7 +57,10 @@ extern void *lfind(const void *, const void *, size_t *, size_t,
 		   int (*)(const void *, const void *));
 #endif
 
-#if !defined(HAVE_SNPRINTF) && !defined(HAVE__SNPRINTF)
+#if defined(HAVE__SNPRINTF)
+#undef snprintf
+#define snprintf _snprintf
+#elif !defined(HAVE_SNPRINTF)
 #undef snprintf
 #define snprintf _TIFF_snprintf_f
 extern int snprintf(char* str, size_t size, const char* format, ...);

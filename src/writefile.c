@@ -80,12 +80,12 @@
 #include <string.h>
 #include "allheaders.h"
 
-    /*   Special flag for pixWrite().  The default for both unix and     */
-    /*   windows is to use whatever filename is given, as opposed to     */
-    /*   insuring the filename extension matches the image compression.  */
+/*   Special flag for pixWrite().  The default for both unix and     */
+/*   windows is to use whatever filename is given, as opposed to     */
+/*   insuring the filename extension matches the image compression.  */
 #define  WRITE_AS_NAMED    1
 
-    /* Display program (xv, xli, xzgv, open) to be invoked by pixDisplay()  */
+/* Display program (xv, xli, xzgv, open) to be invoked by pixDisplay()  */
 #ifdef _WIN32
 static l_int32  var_DISPLAY_PROG = L_DISPLAY_WITH_IV;  /* default */
 #elif  defined(__APPLE__)
@@ -94,12 +94,20 @@ static l_int32  var_DISPLAY_PROG = L_DISPLAY_WITH_OPEN;  /* default */
 static l_int32  var_DISPLAY_PROG = L_DISPLAY_WITH_XZGV;  /* default */
 #endif  /* _WIN32 */
 
-static const l_int32  L_BUF_SIZE = 512;
-static const l_int32  MAX_DISPLAY_WIDTH = 1000;
-static const l_int32  MAX_DISPLAY_HEIGHT = 800;
-static const l_int32  MAX_SIZE_FOR_PNG = 200;
+/* MSVC can't handle arrays dimensioned by static const integers */
+#if defined(_WIN32) && defined(_MSC_VER)
+	#define L_BUF_SIZE								512
+	#define MAX_SIZE_FOR_PNG						200
+	#define MAX_DISPLAY_WIDTH						1000
+	#define MAX_DISPLAY_HEIGHT						800
+#else
+	static const l_int32  L_BUF_SIZE			=	512;
+	static const l_int32  MAX_SIZE_FOR_PNG		=	200;
+	static const l_int32  MAX_DISPLAY_WIDTH		=	1000;
+	static const l_int32  MAX_DISPLAY_HEIGHT	=	800;
+#endif
 
-    /* PostScript output for printing */
+/* PostScript output for printing */
 static const l_float32  DEFAULT_SCALING = 1.0;
 
     /* Global array of image file format extension names.                */
@@ -170,38 +178,36 @@ static const struct ExtensionMap extension_map[] =
  *          individually for each pix.
  */
 l_int32
-pixaWriteFiles(const char  *rootname,
-               PIXA        *pixa,
-               l_int32      format)
+pixaWriteFiles(const char *rootname, PIXA *pixa, l_int32 format)
 {
-char     bigbuf[L_BUF_SIZE];
-l_int32  i, n, pixformat;
-PIX     *pix;
+	PIX     *pix;
+	l_int32  i, n, pixformat;
+	char     bigbuf[L_BUF_SIZE];
 
-    PROCNAME("pixaWriteFiles");
+	PROCNAME("pixaWriteFiles");
 
-    if (!rootname)
-        return ERROR_INT("rootname not defined", procName, 1);
-    if (!pixa)
-        return ERROR_INT("pixa not defined", procName, 1);
-    if (format < 0 || format == IFF_UNKNOWN ||
-        format >= NumImageFileFormatExtensions)
-        return ERROR_INT("invalid format", procName, 1);
+	if (!rootname)
+		return ERROR_INT("rootname not defined", procName, 1);
+	if (!pixa)
+		return ERROR_INT("pixa not defined", procName, 1);
+	if (format < 0 || format == IFF_UNKNOWN ||
+		format >= NumImageFileFormatExtensions)
+		return ERROR_INT("invalid format", procName, 1);
 
-    n = pixaGetCount(pixa);
-    for (i = 0; i < n; i++) {
-        pix = pixaGetPix(pixa, i, L_CLONE);
-        if (format == IFF_DEFAULT)
-            pixformat = pixChooseOutputFormat(pix);
-        else
-            pixformat = format;
-        snprintf(bigbuf, L_BUF_SIZE, "%s%03d.%s", rootname, i,
-                 ImageFileFormatExtensions[pixformat]);
-        pixWrite(bigbuf, pix, pixformat);
-        pixDestroy(&pix);
-    }
+	n = pixaGetCount(pixa);
+	for (i = 0; i < n; i++) {
+		pix = pixaGetPix(pixa, i, L_CLONE);
+		if (format == IFF_DEFAULT)
+			pixformat = pixChooseOutputFormat(pix);
+		else
+			pixformat = format;
+		snprintf(bigbuf, L_BUF_SIZE, "%s%03d.%s", rootname, i,
+				 ImageFileFormatExtensions[pixformat]);
+		pixWrite(bigbuf, pix, pixformat);
+		pixDestroy(&pix);
+	}
 
-    return 0;
+	return 0;
 }
 
 

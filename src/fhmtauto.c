@@ -97,7 +97,12 @@
 
 #define   PROTOARGS   "(l_uint32 *, l_int32, l_int32, l_int32, l_uint32 *, l_int32);"
 
-static const l_int32  L_BUF_SIZE = 512;
+/* MSVC can't handle arrays dimensioned by static const integers */
+#if defined(_WIN32) && defined(_MSC_VER)
+	#define	L_BUF_SIZE					512
+#else
+	static const l_int32  L_BUF_SIZE =	512;
+#endif
 
 static char * makeBarrelshiftString(l_int32 delx, l_int32 dely, l_int32 type);
 static SARRAY * sarrayMakeInnerLoopDWACode(SEL *sel, l_int32 nhits, l_int32 nmisses);
@@ -240,164 +245,162 @@ l_int32  ret1, ret2;
  *          generates code that will abort the operation if it is called.
  */
 l_int32
-fhmtautogen1(SELA        *sela,
-             l_int32      fileindex,
-             const char  *filename)
+fhmtautogen1(SELA *sela, l_int32 fileindex, const char *filename)
 {
-char    *filestr;
-char    *str_proto1, *str_proto2, *str_proto3;
-char    *str_doc1, *str_doc2, *str_doc3, *str_doc4;
-char    *str_def1, *str_def2, *str_proc1, *str_proc2;
-char    *str_dwa1, *str_low_dt, *str_low_ds;
-char     bigbuf[L_BUF_SIZE];
-l_int32  i, nsels, nbytes, actstart, end, newstart;
-size_t   size;
-SARRAY  *sa1, *sa2, *sa3;
+	char    *filestr;
+	char     bigbuf[L_BUF_SIZE];
+	char    *str_proto1, *str_proto2, *str_proto3;
+	char    *str_doc1, *str_doc2, *str_doc3, *str_doc4;
+	char    *str_def1, *str_def2, *str_proc1, *str_proc2;
+	char    *str_dwa1, *str_low_dt, *str_low_ds;
+	l_int32  i, nsels, nbytes, actstart, end, newstart;
+	size_t   size;
+	SARRAY  *sa1, *sa2, *sa3;
 
-    PROCNAME("fhmtautogen1");
+	PROCNAME("fhmtautogen1");
 
-    if (!sela)
-        return ERROR_INT("sela not defined", procName, 1);
-    if (fileindex < 0)
-        fileindex = 0;
-    if ((nsels = selaGetCount(sela)) == 0)
-        return ERROR_INT("no sels in sela", procName, 1);
+	if (!sela)
+		return ERROR_INT("sela not defined", procName, 1);
+	if (fileindex < 0)
+		fileindex = 0;
+	if ((nsels = selaGetCount(sela)) == 0)
+		return ERROR_INT("no sels in sela", procName, 1);
 
-        /* Make array of sel names */
-    sa1 = selaGetSelnames(sela);
+	/* Make array of sel names */
+	sa1 = selaGetSelnames(sela);
 
-        /* Make array of textlines from from hmttemplate1.txt */
-    if ((filestr = (char *)l_binaryRead(TEMPLATE1, &size)) == NULL)
-        return ERROR_INT("filestr not made", procName, 1);
-    if ((sa2 = sarrayCreateLinesFromString(filestr, 1)) == NULL)
-        return ERROR_INT("sa2 not made", procName, 1);
-    FREE(filestr);
+	/* Make array of textlines from from hmttemplate1.txt */
+	if ((filestr = (char *)l_binaryRead(TEMPLATE1, &size)) == NULL)
+		return ERROR_INT("filestr not made", procName, 1);
+	if ((sa2 = sarrayCreateLinesFromString(filestr, 1)) == NULL)
+		return ERROR_INT("sa2 not made", procName, 1);
+	FREE(filestr);
 
-        /* Make strings containing function call names */
-    sprintf(bigbuf, "PIX *pixHMTDwa_%d(PIX *pixd, PIX *pixs, "
-                    "const char *selname);", fileindex);
-    str_proto1 = stringNew(bigbuf);
-    sprintf(bigbuf, "PIX *pixFHMTGen_%d(PIX *pixd, PIX *pixs, "
-                    "const char *selname);", fileindex);
-    str_proto2 = stringNew(bigbuf);
-    sprintf(bigbuf, "l_int32 fhmtgen_low_%d(l_uint32 *datad, l_int32 w,\n"
-            "                      l_int32 h, l_int32 wpld,\n"
-            "                      l_uint32 *datas, l_int32 wpls,\n"
-            "                      l_int32 index);", fileindex);
-    str_proto3 = stringNew(bigbuf);
-    sprintf(bigbuf, " *             PIX     *pixHMTDwa_%d()", fileindex);
-    str_doc1 = stringNew(bigbuf);
-    sprintf(bigbuf, " *             PIX     *pixFHMTGen_%d()", fileindex);
-    str_doc2 = stringNew(bigbuf);
-    sprintf(bigbuf, " *  pixHMTDwa_%d()", fileindex);
-    str_doc3 = stringNew(bigbuf);
-    sprintf(bigbuf, " *  pixFHMTGen_%d()", fileindex);
-    str_doc4 = stringNew(bigbuf);
-    sprintf(bigbuf, "pixHMTDwa_%d(PIX         *pixd,", fileindex);
-    str_def1 = stringNew(bigbuf);
-    sprintf(bigbuf, "pixFHMTGen_%d(PIX         *pixd,", fileindex);
-    str_def2 = stringNew(bigbuf);
-    sprintf(bigbuf, "    PROCNAME(\"pixHMTDwa_%d\");", fileindex);
-    str_proc1 = stringNew(bigbuf);
-    sprintf(bigbuf, "    PROCNAME(\"pixFHMTGen_%d\");", fileindex);
-    str_proc2 = stringNew(bigbuf);
-    sprintf(bigbuf, "    pixt2 = pixFHMTGen_%d(NULL, pixt1, selname);",
-            fileindex);
-    str_dwa1 = stringNew(bigbuf);
-    sprintf(bigbuf,
-            "        fhmtgen_low_%d(datad, w, h, wpld, datat, wpls, index);",
-            fileindex);
-    str_low_dt = stringNew(bigbuf);
-    sprintf(bigbuf,
-            "        fhmtgen_low_%d(datad, w, h, wpld, datas, wpls, index);",
-            fileindex);
-    str_low_ds = stringNew(bigbuf);
+	/* Make strings containing function call names */
+	sprintf(bigbuf, "PIX *pixHMTDwa_%d(PIX *pixd, PIX *pixs, "
+					"const char *selname);", fileindex);
+	str_proto1 = stringNew(bigbuf);
+	sprintf(bigbuf, "PIX *pixFHMTGen_%d(PIX *pixd, PIX *pixs, "
+					"const char *selname);", fileindex);
+	str_proto2 = stringNew(bigbuf);
+	sprintf(bigbuf, "l_int32 fhmtgen_low_%d(l_uint32 *datad, l_int32 w,\n"
+			"                      l_int32 h, l_int32 wpld,\n"
+			"                      l_uint32 *datas, l_int32 wpls,\n"
+			"                      l_int32 index);", fileindex);
+	str_proto3 = stringNew(bigbuf);
+	sprintf(bigbuf, " *             PIX     *pixHMTDwa_%d()", fileindex);
+	str_doc1 = stringNew(bigbuf);
+	sprintf(bigbuf, " *             PIX     *pixFHMTGen_%d()", fileindex);
+	str_doc2 = stringNew(bigbuf);
+	sprintf(bigbuf, " *  pixHMTDwa_%d()", fileindex);
+	str_doc3 = stringNew(bigbuf);
+	sprintf(bigbuf, " *  pixFHMTGen_%d()", fileindex);
+	str_doc4 = stringNew(bigbuf);
+	sprintf(bigbuf, "pixHMTDwa_%d(PIX         *pixd,", fileindex);
+	str_def1 = stringNew(bigbuf);
+	sprintf(bigbuf, "pixFHMTGen_%d(PIX         *pixd,", fileindex);
+	str_def2 = stringNew(bigbuf);
+	sprintf(bigbuf, "    PROCNAME(\"pixHMTDwa_%d\");", fileindex);
+	str_proc1 = stringNew(bigbuf);
+	sprintf(bigbuf, "    PROCNAME(\"pixFHMTGen_%d\");", fileindex);
+	str_proc2 = stringNew(bigbuf);
+	sprintf(bigbuf, "    pixt2 = pixFHMTGen_%d(NULL, pixt1, selname);",
+			fileindex);
+	str_dwa1 = stringNew(bigbuf);
+	sprintf(bigbuf,
+			"        fhmtgen_low_%d(datad, w, h, wpld, datat, wpls, index);",
+			fileindex);
+	str_low_dt = stringNew(bigbuf);
+	sprintf(bigbuf,
+			"        fhmtgen_low_%d(datad, w, h, wpld, datas, wpls, index);",
+			fileindex);
+	str_low_ds = stringNew(bigbuf);
 
-        /* Make the output sa */
-    if ((sa3 = sarrayCreate(0)) == NULL)
-        return ERROR_INT("sa3 not made", procName, 1);
+	/* Make the output sa */
+	if ((sa3 = sarrayCreate(0)) == NULL)
+		return ERROR_INT("sa3 not made", procName, 1);
 
-        /* Copyright notice and info header */
-    sarrayParseRange(sa2, 0, &actstart, &end, &newstart, "--", 0);
-    sarrayAppendRange(sa3, sa2, actstart, end);
+	/* Copyright notice and info header */
+	sarrayParseRange(sa2, 0, &actstart, &end, &newstart, "--", 0);
+	sarrayAppendRange(sa3, sa2, actstart, end);
 
-        /* Insert function names as documentation */
-    sarrayAddString(sa3, str_doc1, L_INSERT);
-    sarrayAddString(sa3, str_doc2, L_INSERT);
+	/* Insert function names as documentation */
+	sarrayAddString(sa3, str_doc1, L_INSERT);
+	sarrayAddString(sa3, str_doc2, L_INSERT);
 
-        /* Add '#include's */
-    sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
-    sarrayAppendRange(sa3, sa2, actstart, end);
+	/* Add '#include's */
+	sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
+	sarrayAppendRange(sa3, sa2, actstart, end);
 
-        /* Insert function prototypes */
-    sarrayAddString(sa3, str_proto1, L_INSERT);
-    sarrayAddString(sa3, str_proto2, L_INSERT);
-    sarrayAddString(sa3, str_proto3, L_INSERT);
+	/* Insert function prototypes */
+	sarrayAddString(sa3, str_proto1, L_INSERT);
+	sarrayAddString(sa3, str_proto2, L_INSERT);
+	sarrayAddString(sa3, str_proto3, L_INSERT);
 
-        /* Add static globals */
-    sprintf(bigbuf, "\nstatic l_int32   NUM_SELS_GENERATED = %d;", nsels);
-    sarrayAddString(sa3, bigbuf, L_COPY);
-    sprintf(bigbuf, "static char  SEL_NAMES[][80] = {");
-    sarrayAddString(sa3, bigbuf, L_COPY);
-    for (i = 0; i < nsels - 1; i++) {
-        sprintf(bigbuf,
-        "                             \"%s\",", sarrayGetString(sa1, i, 0));
-        sarrayAddString(sa3, bigbuf, L_COPY);
-    }
-    sprintf(bigbuf,
-        "                             \"%s\"};", sarrayGetString(sa1, i, 0));
-    sarrayAddString(sa3, bigbuf, L_COPY);
+	/* Add static globals */
+	sprintf(bigbuf, "\nstatic l_int32   NUM_SELS_GENERATED = %d;", nsels);
+	sarrayAddString(sa3, bigbuf, L_COPY);
+	sprintf(bigbuf, "static char  SEL_NAMES[][80] = {");
+	sarrayAddString(sa3, bigbuf, L_COPY);
+	for (i = 0; i < nsels - 1; i++) {
+		sprintf(bigbuf,
+		"                             \"%s\",", sarrayGetString(sa1, i, 0));
+		sarrayAddString(sa3, bigbuf, L_COPY);
+	}
+	sprintf(bigbuf,
+		"                             \"%s\"};", sarrayGetString(sa1, i, 0));
+	sarrayAddString(sa3, bigbuf, L_COPY);
 
-        /* Start pixHMTDwa_*() function description */
-    sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
-    sarrayAppendRange(sa3, sa2, actstart, end);
-    sarrayAddString(sa3, str_doc3, L_INSERT);
-    sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
-    sarrayAppendRange(sa3, sa2, actstart, end);
+	/* Start pixHMTDwa_*() function description */
+	sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
+	sarrayAppendRange(sa3, sa2, actstart, end);
+	sarrayAddString(sa3, str_doc3, L_INSERT);
+	sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
+	sarrayAppendRange(sa3, sa2, actstart, end);
 
-        /* Finish pixHMTDwa_*() function definition */
-    sarrayAddString(sa3, str_def1, L_INSERT);
-    sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
-    sarrayAppendRange(sa3, sa2, actstart, end);
-    sarrayAddString(sa3, str_proc1, L_INSERT);
-    sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
-    sarrayAppendRange(sa3, sa2, actstart, end);
-    sarrayAddString(sa3, str_dwa1, L_INSERT);
-    sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
-    sarrayAppendRange(sa3, sa2, actstart, end);
+	/* Finish pixHMTDwa_*() function definition */
+	sarrayAddString(sa3, str_def1, L_INSERT);
+	sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
+	sarrayAppendRange(sa3, sa2, actstart, end);
+	sarrayAddString(sa3, str_proc1, L_INSERT);
+	sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
+	sarrayAppendRange(sa3, sa2, actstart, end);
+	sarrayAddString(sa3, str_dwa1, L_INSERT);
+	sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
+	sarrayAppendRange(sa3, sa2, actstart, end);
 
-        /* Start pixFHMTGen_*() function description */
-    sarrayAddString(sa3, str_doc4, L_INSERT);
-    sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
-    sarrayAppendRange(sa3, sa2, actstart, end);
+	/* Start pixFHMTGen_*() function description */
+	sarrayAddString(sa3, str_doc4, L_INSERT);
+	sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
+	sarrayAppendRange(sa3, sa2, actstart, end);
 
-        /* Finish pixFHMTGen_*() function description */
-    sarrayAddString(sa3, str_def2, L_INSERT);
-    sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
-    sarrayAppendRange(sa3, sa2, actstart, end);
-    sarrayAddString(sa3, str_proc2, L_INSERT);
-    sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
-    sarrayAppendRange(sa3, sa2, actstart, end);
-    sarrayAddString(sa3, str_low_dt, L_INSERT);
-    sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
-    sarrayAppendRange(sa3, sa2, actstart, end);
-    sarrayAddString(sa3, str_low_ds, L_INSERT);
-    sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
-    sarrayAppendRange(sa3, sa2, actstart, end);
+	/* Finish pixFHMTGen_*() function description */
+	sarrayAddString(sa3, str_def2, L_INSERT);
+	sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
+	sarrayAppendRange(sa3, sa2, actstart, end);
+	sarrayAddString(sa3, str_proc2, L_INSERT);
+	sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
+	sarrayAppendRange(sa3, sa2, actstart, end);
+	sarrayAddString(sa3, str_low_dt, L_INSERT);
+	sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
+	sarrayAppendRange(sa3, sa2, actstart, end);
+	sarrayAddString(sa3, str_low_ds, L_INSERT);
+	sarrayParseRange(sa2, newstart, &actstart, &end, &newstart, "--", 0);
+	sarrayAppendRange(sa3, sa2, actstart, end);
 
-    if ((filestr = sarrayToString(sa3, 1)) == NULL)
-        return ERROR_INT("filestr from sa3 not made", procName, 1);
-    nbytes = strlen(filestr);
-    if (filename)
-        sprintf(bigbuf, "%s.%d.c", filename, fileindex);
-    else
-        sprintf(bigbuf, "%s.%d.c", OUTROOT, fileindex);
-    l_binaryWrite(bigbuf, "w", filestr, nbytes);
-    sarrayDestroy(&sa1);
-    sarrayDestroy(&sa2);
-    sarrayDestroy(&sa3);
-    FREE(filestr);
-    return 0;
+	if ((filestr = sarrayToString(sa3, 1)) == NULL)
+		return ERROR_INT("filestr from sa3 not made", procName, 1);
+	nbytes = strlen(filestr);
+	if (filename)
+		sprintf(bigbuf, "%s.%d.c", filename, fileindex);
+	else
+		sprintf(bigbuf, "%s.%d.c", OUTROOT,  fileindex);
+	l_binaryWrite(bigbuf, "w", filestr, nbytes);
+	sarrayDestroy(&sa1);
+	sarrayDestroy(&sa2);
+	sarrayDestroy(&sa3);
+	FREE(filestr);
+	return 0;
 }
 
 

@@ -87,9 +87,12 @@ endif()
 add_library(${LEPTONICA} ${LEPTONICA_LIBRARIE_TYPE} 
 	${SOURCES} ${HEADERS} ${LIBRARY_HEADERS})
 target_link_libraries(${LEPTONICA} ${ZLIB} ${PNG} ${TIFF} ${JPEG})
-if( NOT TESSERACT_LIBRARY_TYPE STREQUAL "STATIC" )
+if( LEPTONICA_LIBRARIE_TYPE STREQUAL "SHARED" )
 	# Export all interfaces if we compile a shared library
-	target_compile_definitions(${LEPTONICA} PUBLIC -DLIBLEPT_EXPORTS)
+	set_target_properties(
+		${LEPTONICA} PROPERTIES DEFINE_SYMBOL "LIBLEPT_EXPORTS")
+	# CMake 3.4.0 --> The follow doesn't work on MSVC 2010
+	#target_compile_definitions(${LEPTONICA} INTERFACE -DLIBLEPT_EXPORTS)
 endif()
 
 # Set properties on the target.

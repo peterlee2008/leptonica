@@ -98,7 +98,12 @@
 #include <string.h>
 #include "allheaders.h"
 
-static const l_int32  L_BUF_SIZE = 512;
+/* MSVC can't handle arrays dimensioned by static const integers */
+#if defined(_WIN32) && defined(_MSC_VER)
+	#define	L_BUF_SIZE					512
+#else
+	static const l_int32  L_BUF_SIZE =	512;
+#endif
 
 const char  *gplotstylenames[] = {"with lines",
                                   "with points",

@@ -54,12 +54,12 @@
     /* Number array: an array of floats */
 struct Numa
 {
-    l_int32          nalloc;    /* size of allocated number array      */
-    l_int32          n;         /* number of numbers saved             */
-    l_int32          refcount;  /* reference count (1 if no clones)    */
-    l_float32        startx;    /* x value assigned to array[0]        */
-    l_float32        delx;      /* change in x value as i --> i + 1    */
-    l_float32       *array;     /* number array                        */
+    l_int32          nalloc;	/* size of allocated number array      */
+    l_int32          n;			/* number of numbers saved             */
+    l_int32          refcount;	/* reference count (1 if no clones)    */
+    l_float32        startx;	/* x value assigned to array[0]        */
+    l_float32        delx;		/* change in x value as i --> i + 1    */
+    l_float32       *array;		/* number array                        */
 };
 typedef struct Numa  NUMA;
 
@@ -67,9 +67,9 @@ typedef struct Numa  NUMA;
     /* Array of number arrays */
 struct Numaa
 {
-    l_int32          nalloc;    /* size of allocated ptr array          */
-    l_int32          n;         /* number of Numa saved                 */
-    struct Numa    **numa;      /* array of Numa                        */
+    l_int32          nalloc;	/* size of allocated ptr array          */
+    l_int32          n;			/* number of Numa saved                 */
+    struct Numa    **numa;		/* array of Numa                        */
 };
 typedef struct Numaa  NUMAA;
 
@@ -77,10 +77,10 @@ typedef struct Numaa  NUMAA;
     /* Sparse 2-dimensional array of number arrays */
 struct Numa2d
 {
-    l_int32          nrows;      /* number of rows allocated for ptr array  */
-    l_int32          ncols;      /* number of cols allocated for ptr array  */
-    l_int32          initsize;   /* initial size of each numa that is made  */
-    struct Numa   ***numa;       /* 2D array of Numa                        */
+    l_int32          nrows;		/* number of rows allocated for ptr array  */
+    l_int32          ncols;		/* number of cols allocated for ptr array  */
+    l_int32          initsize;	/* initial size of each numa that is made  */
+    struct Numa   ***numa;		/* 2D array of Numa                        */
 };
 typedef struct Numa2d  NUMA2D;
 
@@ -89,7 +89,7 @@ typedef struct Numa2d  NUMA2D;
 struct NumaHash
 {
     l_int32          nbuckets;
-    l_int32          initsize;   /* initial size of each numa that is made  */
+    l_int32          initsize;	/* initial size of each numa that is made  */
     struct Numa    **numa;
 };
 typedef struct NumaHash NUMAHASH;

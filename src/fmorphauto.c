@@ -101,7 +101,12 @@
 
 #define   PROTOARGS   "(l_uint32 *, l_int32, l_int32, l_int32, l_uint32 *, l_int32);"
 
-static const l_int32  L_BUF_SIZE = 512;
+/* MSVC can't handle arrays dimensioned by static const integers */
+#if defined(_WIN32) && defined(_MSC_VER)
+	#define	L_BUF_SIZE				   512
+#else
+	static const l_int32  L_BUF_SIZE = 512;
+#endif
 
 static char * makeBarrelshiftString(l_int32 delx, l_int32 dely);
 static SARRAY * sarrayMakeInnerLoopDWACode(SEL *sel, l_int32 index);

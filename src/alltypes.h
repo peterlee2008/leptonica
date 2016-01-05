@@ -27,15 +27,15 @@
 #ifndef  LEPTONICA_ALLTYPES_H
 #define  LEPTONICA_ALLTYPES_H
 
-    /* Standard */
+/* Standard */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 
-    /* General and configuration defs */
+/* General and configuration defs */
 #include "environ.h"
 
-    /* Generic and non-image-specific containers */
+/* Generic and non-image-specific containers */
 #include "array.h"
 #include "bbuffer.h"
 #include "heap.h"
@@ -44,7 +44,7 @@
 #include "queue.h"
 #include "stack.h"
 
-    /* Imaging */
+/* Imaging */
 #include "arrayaccess.h"
 #include "bmf.h"
 #include "ccbord.h"

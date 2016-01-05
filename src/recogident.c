@@ -95,18 +95,29 @@
 #include <string.h>
 #include "allheaders.h"
 
-    /* Padding on pix1: added before correlations and removed from result */
-static const l_int32    LeftRightPadding = 32;
+/* MSVC can't handle arrays dimensioned by static const integers */
+#if defined(_WIN32) && defined(_MSC_VER)
+	#define LeftRightPadding			32
+	#define MaxAspectRatio				6.0
+	#define MinFillFactor				0.25
+	#define MaxPreFillFactor			0.80
+	#define MaxSplitFillFactor			0.85
+	#define MinOverlap1					6
+	#define MinOverlap2					6
+	#define MinHeightPass1				5
+#else
+	/* Padding on pix1: added before correlations and removed from result */
+	static const l_int32    LeftRightPadding = 32;
 
-    /* Parameters for filtering and sorting connected components in splitter */
-static const l_float32  MaxAspectRatio = 6.0;
-static const l_float32  MinFillFactor = 0.25;
-static const l_float32  MaxPreFillFactor = 0.80;
-static const l_float32  MaxSplitFillFactor = 0.85;
-static const l_int32  MinOverlap1 = 6;  /* in pass 1 of boxaSort2d() */
-static const l_int32  MinOverlap2 = 6;  /* in pass 2 of boxaSort2d() */
-static const l_int32  MinHeightPass1 = 5;  /* min height to start pass 1 */
-
+	/* Parameters for filtering and sorting connected components in splitter */
+	static const l_float32  MaxAspectRatio = 6.0;
+	static const l_float32  MinFillFactor = 0.25;
+	static const l_float32  MaxPreFillFactor = 0.80;
+	static const l_float32  MaxSplitFillFactor = 0.85;
+	static const l_int32  MinOverlap1 = 6;  /* in pass 1 of boxaSort2d() */
+	static const l_int32  MinOverlap2 = 6;  /* in pass 2 of boxaSort2d() */
+	static const l_int32  MinHeightPass1 = 5;  /* min height to start pass 1 */
+#endif
 
 static l_int32 pixCorrelationBestShift(PIX *pix1, PIX *pix2, NUMA *nasum1,
                                        NUMA *namoment1, l_int32 area2,
@@ -774,121 +785,121 @@ pixCorrelationBestShift(PIX        *pix1,
                         l_float32  *pscore,
                         l_int32     debugflag)
 {
-l_int32     w1, w2, h1, h2, i, j, nx, shifty, delx, dely;
-l_int32     sum, moment, count;
-l_int32    *tab, *area1, *arraysum, *arraymoment;
-l_float32   maxscore, score;
-l_float32  *ycent1;
-FPIX       *fpix;
-PIX        *pixt, *pixt1, *pixt2;
+	l_int32     w1, w2, h1, h2, i, j, nx, shifty, delx, dely;
+	l_int32     sum, moment, count;
+	l_int32    *tab, *area1, *arraysum, *arraymoment;
+	l_float32   maxscore, score;
+	l_float32  *ycent1;
+	FPIX       *fpix;
+	PIX        *pixt, *pixt1, *pixt2;
 
-    PROCNAME("pixCorrelationBestShift");
+	PROCNAME("pixCorrelationBestShift");
 
-    if (pdelx) *pdelx = 0;
-    if (pdely) *pdely = 0;
-    if (pscore) *pscore = 0.0;
-    if (!pix1 || pixGetDepth(pix1) != 1)
-        return ERROR_INT("pix1 not defined or not 1 bpp", procName, 1);
-    if (!pix2 || pixGetDepth(pix2) != 1)
-        return ERROR_INT("pix2 not defined or not 1 bpp", procName, 1);
-    if (!nasum1 || !namoment1)
-        return ERROR_INT("nasum1 and namoment1 not both defined", procName, 1);
-    if (area2 <= 0 || ycent2 <= 0)
-        return ERROR_INT("area2 and ycent2 must be > 0", procName, 1);
+	if (pdelx) *pdelx = 0;
+	if (pdely) *pdely = 0;
+	if (pscore) *pscore = 0.0;
+	if (!pix1 || pixGetDepth(pix1) != 1)
+		return ERROR_INT("pix1 not defined or not 1 bpp", procName, 1);
+	if (!pix2 || pixGetDepth(pix2) != 1)
+		return ERROR_INT("pix2 not defined or not 1 bpp", procName, 1);
+	if (!nasum1 || !namoment1)
+		return ERROR_INT("nasum1 and namoment1 not both defined", procName, 1);
+	if (area2 <= 0 || ycent2 <= 0)
+		return ERROR_INT("area2 and ycent2 must be > 0", procName, 1);
 
-       /* If pix1 (the unknown image) is narrower than pix2,
-        * don't bother to try the match.  pix1 is already padded with
-        * 2 pixels on each side. */
-    pixGetDimensions(pix1, &w1, &h1, NULL);
-    pixGetDimensions(pix2, &w2, &h2, NULL);
-    if (w1 < w2) {
-        if (debugflag > 0) {
-            L_INFO("skipping match with w1 = %d and w2 = %d\n",
-                   procName, w1, w2);
-        }
-        return 0;
-    }
-    nx = w1 - w2 + 1;
+	   /* If pix1 (the unknown image) is narrower than pix2,
+		* don't bother to try the match.  pix1 is already padded with
+		* 2 pixels on each side. */
+	pixGetDimensions(pix1, &w1, &h1, NULL);
+	pixGetDimensions(pix2, &w2, &h2, NULL);
+	if (w1 < w2) {
+		if (debugflag > 0) {
+			L_INFO("skipping match with w1 = %d and w2 = %d\n",
+				   procName, w1, w2);
+		}
+		return 0;
+	}
+	nx = w1 - w2 + 1;
 
-    if (debugflag > 0)
-        fpix = fpixCreate(nx, 2 * maxyshift + 1);
-    if (!tab8)
-        tab = makePixelSumTab8();
-    else
-        tab = tab8;
+	if (debugflag > 0)
+		fpix = fpixCreate(nx, 2 * maxyshift + 1);
+	if (!tab8)
+		tab = makePixelSumTab8();
+	else
+		tab = tab8;
 
-        /* Set up the arrays for area1 and ycent1.  We have to do this
-         * for each template (pix2) because the window width is w2. */
-    area1 = (l_int32 *)CALLOC(nx, sizeof(l_int32));
-    ycent1 = (l_float32 *)CALLOC(nx, sizeof(l_int32));
-    arraysum = numaGetIArray(nasum1);
-    arraymoment = numaGetIArray(namoment1);
-    for (i = 0, sum = 0, moment = 0; i < w2; i++) {
-        sum += arraysum[i];
-        moment += arraymoment[i];
-    }
-    for (i = 0; i < nx - 1; i++) {
-        area1[i] = sum;
-        ycent1[i] = (sum == 0) ? ycent2 : (l_float32)moment / (l_float32)sum;
-        sum += arraysum[w2 + i] - arraysum[i];
-        moment += arraymoment[w2 + i] - arraymoment[i];
-    }
-    area1[nx - 1] = sum;
-    ycent1[nx - 1] = (sum == 0) ? ycent2 : (l_float32)moment / (l_float32)sum;
+		/* Set up the arrays for area1 and ycent1.  We have to do this
+		 * for each template (pix2) because the window width is w2. */
+	area1 = (l_int32 *)CALLOC(nx, sizeof(l_int32));
+	ycent1 = (l_float32 *)CALLOC(nx, sizeof(l_int32));
+	arraysum = numaGetIArray(nasum1);
+	arraymoment = numaGetIArray(namoment1);
+	for (i = 0, sum = 0, moment = 0; i < w2; i++) {
+		sum += arraysum[i];
+		moment += arraymoment[i];
+	}
+	for (i = 0; i < nx - 1; i++) {
+		area1[i] = sum;
+		ycent1[i] = (sum == 0) ? ycent2 : (l_float32)moment / (l_float32)sum;
+		sum += arraysum[w2 + i] - arraysum[i];
+		moment += arraymoment[w2 + i] - arraymoment[i];
+	}
+	area1[nx - 1] = sum;
+	ycent1[nx - 1] = (sum == 0) ? ycent2 : (l_float32)moment / (l_float32)sum;
 
-        /* Find the best match location for pix2.  At each location,
-         * to insure that pixels are ON only within the intersection of
-         * pix and the shifted pix2:
-         *  (1) Start with pixt cleared and equal in size to pix1.
-         *  (2) Blit the shifted pix2 onto pixt.  Then all ON pixels
-         *      are within the intersection of pix1 and the shifted pix2.
-         *  (3) AND pix1 with pixt. */
-    pixt = pixCreate(w2, h1, 1);
-    maxscore = 0;
-    delx = 0;
-    dely = 0;  /* amount to shift pix2 relative to pix1 to get alignment */
-    for (i = 0; i < nx; i++) {
-        shifty = (l_int32)(ycent1[i] - ycent2 + 0.5);
-        for (j = -maxyshift; j <= maxyshift; j++) {
-            pixClearAll(pixt);
-            pixRasterop(pixt, 0, shifty + j, w2, h2, PIX_SRC, pix2, 0, 0);
-            pixRasterop(pixt, 0, 0, w2, h1, PIX_SRC & PIX_DST, pix1, i, 0);
-            pixCountPixels(pixt, &count, tab);
-            score = (l_float32)count * (l_float32)count /
-                    ((l_float32)area1[i] * (l_float32)area2);
-            if (score > maxscore) {
-                maxscore = score;
-                delx = i;
-                dely = shifty + j;
-            }
+		/* Find the best match location for pix2.  At each location,
+		 * to insure that pixels are ON only within the intersection of
+		 * pix and the shifted pix2:
+		 *  (1) Start with pixt cleared and equal in size to pix1.
+		 *  (2) Blit the shifted pix2 onto pixt.  Then all ON pixels
+		 *      are within the intersection of pix1 and the shifted pix2.
+		 *  (3) AND pix1 with pixt. */
+	pixt = pixCreate(w2, h1, 1);
+	maxscore = 0;
+	delx = 0;
+	dely = 0;  /* amount to shift pix2 relative to pix1 to get alignment */
+	for (i = 0; i < nx; i++) {
+		shifty = (l_int32)(ycent1[i] - ycent2 + 0.5);
+		for (j = -maxyshift; j <= maxyshift; j++) {
+			pixClearAll(pixt);
+			pixRasterop(pixt, 0, shifty + j, w2, h2, PIX_SRC, pix2, 0, 0);
+			pixRasterop(pixt, 0, 0, w2, h1, PIX_SRC & PIX_DST, pix1, i, 0);
+			pixCountPixels(pixt, &count, tab);
+			score = (l_float32)count * (l_float32)count /
+					((l_float32)area1[i] * (l_float32)area2);
+			if (score > maxscore) {
+				maxscore = score;
+				delx = i;
+				dely = shifty + j;
+			}
 
-            if (debugflag > 0)
-                fpixSetPixel(fpix, i, maxyshift + j, 1000.0 * score);
-        }
-    }
+			if (debugflag > 0)
+				fpixSetPixel(fpix, i, maxyshift + j, 1000.0 * score);
+		}
+	}
 
-    if (debugflag > 0) {
-        lept_mkdir("recog");
-        char  buf[128];
-        pixt1 = fpixDisplayMaxDynamicRange(fpix);
-        pixt2 = pixExpandReplicate(pixt1, 5);
-        snprintf(buf, sizeof(buf), "/tmp/recog/junkbs_%d.png", debugflag);
-        pixWrite(buf, pixt2, IFF_PNG);
-        pixDestroy(&pixt1);
-        pixDestroy(&pixt2);
-        fpixDestroy(&fpix);
-    }
+	if (debugflag > 0) {
+		char buf[128];
+		lept_mkdir("recog");
+		pixt1 = fpixDisplayMaxDynamicRange(fpix);
+		pixt2 = pixExpandReplicate(pixt1, 5);
+		snprintf(buf, sizeof(buf), "/tmp/recog/junkbs_%d.png", debugflag);
+		pixWrite(buf, pixt2, IFF_PNG);
+		pixDestroy(&pixt1);
+		pixDestroy(&pixt2);
+		fpixDestroy(&fpix);
+	}
 
-    if (pdelx) *pdelx = delx;
-    if (pdely) *pdely = dely;
-    if (pscore) *pscore = maxscore;
-    if (!tab8) FREE(tab);
-    FREE(area1);
-    FREE(ycent1);
-    FREE(arraysum);
-    FREE(arraymoment);
-    pixDestroy(&pixt);
-    return 0;
+	if (pdelx) *pdelx = delx;
+	if (pdely) *pdely = dely;
+	if (pscore) *pscore = maxscore;
+	if (!tab8) FREE(tab);
+	FREE(area1);
+	FREE(ycent1);
+	FREE(arraysum);
+	FREE(arraymoment);
+	pixDestroy(&pixt);
+	return 0;
 }
 
 

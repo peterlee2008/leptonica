@@ -50,20 +50,28 @@
 #include <string.h>
 #include "allheaders.h"
 
-static const l_int32  L_BUF_SIZE = 512;
-static const l_int32  JB_WORDS_MIN_WIDTH = 5;  /* pixels */
-static const l_int32  JB_WORDS_MIN_HEIGHT = 3;  /* pixels */
+/* MSVC can't handle arrays dimensioned by static const integers  */
+#if defined(_WIN32) && defined(_MSC_VER)
+	#define	L_BUF_SIZE								512
+	#define JB_WORDS_MIN_WIDTH						5
+	#define JB_WORDS_MIN_HEIGHT						3
+#else
+	static const l_int32  L_BUF_SIZE			=	512;
+	static const l_int32  JB_WORDS_MIN_WIDTH	=	5;	/* pixels */
+	static const l_int32  JB_WORDS_MIN_HEIGHT	=	3;	/* pixels */
+#endif
 
-    /* Static comparison functions */
-static l_int32 testLineAlignmentX(NUMA *na1, NUMA *na2, l_int32 shiftx,
-                                  l_int32 delx, l_int32 nperline);
-static l_int32 countAlignedMatches(NUMA *nai1, NUMA *nai2, NUMA *nasx,
-                                   NUMA *nasy, l_int32 n1, l_int32 n2,
-                                   l_int32 delx, l_int32 dely,
-                                   l_int32 nreq, l_int32 *psame,
-                                   l_int32 debugflag);
-static void printRowIndices(l_int32 *index1, l_int32 n1,
-                            l_int32 *index2, l_int32 n2);
+/* Static comparison functions */
+static l_int32 testLineAlignmentX(
+	NUMA *na1, NUMA *na2, l_int32 shiftx, l_int32 delx, l_int32 nperline);
+static l_int32 countAlignedMatches(
+								NUMA *nai1, NUMA *nai2, 
+								NUMA *nasx, NUMA *nasy, 
+								l_int32 n1, l_int32 n2,
+								l_int32 delx, l_int32 dely, l_int32 nreq, 
+								l_int32 *psame, l_int32 debugflag);
+static void printRowIndices(
+	l_int32 *index1, l_int32 n1, l_int32 *index2, l_int32 n2);
 
 
 /*------------------------------------------------------------------*
@@ -98,56 +106,56 @@ jbCorrelation(const char  *dirin,
               l_int32      npages,
               l_int32      renderflag)
 {
-char        filename[L_BUF_SIZE];
-l_int32     nfiles, i, numpages;
-JBDATA     *data;
-JBCLASSER  *classer;
-PIX        *pix;
-PIXA       *pixa;
-SARRAY     *safiles;
+	char        filename[L_BUF_SIZE];
+	l_int32     nfiles, i, numpages;
+	JBDATA     *data;
+	JBCLASSER  *classer;
+	PIX        *pix;
+	PIXA       *pixa;
+	SARRAY     *safiles;
 
-    PROCNAME("jbCorrelation");
+	PROCNAME("jbCorrelation");
 
-    if (!dirin)
-        return ERROR_INT("dirin not defined", procName, 1);
-    if (!rootname)
-        return ERROR_INT("rootname not defined", procName, 1);
-    if (components != JB_CONN_COMPS && components != JB_CHARACTERS &&
-        components != JB_WORDS)
-        return ERROR_INT("components invalid", procName, 1);
+	if (!dirin)
+		return ERROR_INT("dirin not defined", procName, 1);
+	if (!rootname)
+		return ERROR_INT("rootname not defined", procName, 1);
+	if (components != JB_CONN_COMPS && components != JB_CHARACTERS &&
+		components != JB_WORDS)
+		return ERROR_INT("components invalid", procName, 1);
 
-    safiles = getSortedPathnamesInDirectory(dirin, NULL, firstpage, npages);
-    nfiles = sarrayGetCount(safiles);
+	safiles = getSortedPathnamesInDirectory(dirin, NULL, firstpage, npages);
+	nfiles = sarrayGetCount(safiles);
 
-        /* Classify components */
-    classer = jbCorrelationInit(components, 0, 0, thresh, weight);
-    jbAddPages(classer, safiles);
+	/* Classify components */
+	classer = jbCorrelationInit(components, 0, 0, thresh, weight);
+	jbAddPages(classer, safiles);
 
-        /* Save data */
-    data = jbDataSave(classer);
-    jbDataWrite(rootname, data);
+	/* Save data */
+	data = jbDataSave(classer);
+	jbDataWrite(rootname, data);
 
-        /* Optionally, render pages using class templates */
-    if (renderflag) {
-        pixa = jbDataRender(data, FALSE);
-        numpages = pixaGetCount(pixa);
-        if (numpages != nfiles)
-            fprintf(stderr, "numpages = %d, nfiles = %d, not equal!\n",
-                    numpages, nfiles);
-        for (i = 0; i < numpages; i++) {
-            pix = pixaGetPix(pixa, i, L_CLONE);
-            snprintf(filename, L_BUF_SIZE, "%s.%05d", rootname, i);
-            fprintf(stderr, "filename: %s\n", filename);
-            pixWrite(filename, pix, IFF_PNG);
-            pixDestroy(&pix);
-        }
-        pixaDestroy(&pixa);
-    }
+	/* Optionally, render pages using class templates */
+	if (renderflag) {
+		pixa = jbDataRender(data, FALSE);
+		numpages = pixaGetCount(pixa);
+		if (numpages != nfiles)
+			fprintf(stderr, "numpages = %d, nfiles = %d, not equal!\n",
+					numpages, nfiles);
+		for (i = 0; i < numpages; i++) {
+			pix = pixaGetPix(pixa, i, L_CLONE);
+			snprintf(filename, L_BUF_SIZE, "%s.%05d", rootname, i);
+			fprintf(stderr, "filename: %s\n", filename);
+			pixWrite(filename, pix, IFF_PNG);
+			pixDestroy(&pix);
+		}
+		pixaDestroy(&pixa);
+	}
 
-    sarrayDestroy(&safiles);
-    jbClasserDestroy(&classer);
-    jbDataDestroy(&data);
-    return 0;
+	sarrayDestroy(&safiles);
+	jbClasserDestroy(&classer);
+	jbDataDestroy(&data);
+	return 0;
 }
 
 

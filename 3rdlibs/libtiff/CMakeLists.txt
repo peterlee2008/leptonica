@@ -162,6 +162,9 @@ check_function_exists(strtoull HAVE_STRTOULL)
 check_function_exists(strcasecmp HAVE_STRCASECMP)
 check_function_exists(jbg_newlen HAVE_JBG_NEWLEN)
 
+check_function_exists(snprintf HAVE_SNPRINTF)
+check_function_exists(_snprintf HAVE__SNPRINTF)
+
 check_function_exists(lfind HAVE_LFIND)
 check_function_exists(getopt HAVE_GETOPT)
 check_function_exists(strtoul HAVE_STRTOUL)
@@ -191,27 +194,45 @@ if(WIN32 AND NOT WINRT)
 	set(USE_WIN32_FILEIO 1)
 endif()
 
+if( HAVE_SNPRINTF )
+	add_definitions( -DHAVE_SNPRINTF )
+endif()
+if( HAVE__SNPRINTF )
+	add_definitions( -DHAVE__SNPRINTF )
+endif()
+if( HAVE__SNPRINTF AND NOT HAVE_SNPRINTF )
+	add_definitions(-Dsnprintf=_snprintf)
+endif()
 
 ###############################################################################
 # compiler/linker
 ###############################################################################
+
 if (WIN32)
-    if (MSVC)
-		add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
-    endif()
+	add_definitions(-D__WIN32__)
 endif()
 
 if (CYGWIN)
     add_definitions(-D__CYGWIN__)
 endif()
 
-if (UNIX)
-    set(LIB_pthread pthread)
+# For MSVC compiler
+if (MSVC)
+	# Enable Security Features
+	string(APPEND ${CMAKE_C_FLAGS} " /guard /GS /analyze")
+	string(APPEND ${CMAKE_SHARED_LINKER_FLAGS} " /SAFESEH /NXCOMPAT")
+	# Multithreaded building
+	if(MSVC_VERSION GREATER 1400)
+		set(PROCESSOR_COUNT "$ENV{NUMBER_OF_PROCESSORS}")
+		set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} /MP${PROCESSOR_COUNT}")
+	endif()
+endif()
+# For MINGW compiler
+if (MINGW)
+	string(APPEND ${CMAKE_C_FLAGS} " -fPIE -fstack-protector-all")
+	string(APPEND ${CMAKE_SHARED_LINKER_FLAGS} " -Wl,-z,now -Wl,-z,relro")
 endif()
 
-if( HAVE_SNPRINTF )
-	add_definitions( -DHAVE_SNPRINTF )
-endif()
 
 
 ###############################################################################

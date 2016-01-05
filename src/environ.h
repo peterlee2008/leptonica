@@ -59,25 +59,25 @@ typedef unsigned int uintptr_t;
 
 /* VC++6 doesn't seem to have powf, expf. */
 #if (_MSC_VER < 1400)
-#define powf(x, y) (float)pow((double)(x), (double)(y))
-#define expf(x) (float)exp((double)(x))
+#define expf(x)		(float)exp((double)(x))
+#define powf(x, y)	(float)pow((double)(x), (double)(y))
 #endif
 
 #endif /* _MSC_VER */
 
 /* Windows specifics */
 #ifdef _WIN32
-  /* DLL EXPORTS and IMPORTS */
-  #if defined(LIBLEPT_EXPORTS)
-    #define LEPT_DLL __declspec(dllexport)
-  #elif defined(LIBLEPT_IMPORTS)
-    #define LEPT_DLL __declspec(dllimport)
-  #else
-    #define LEPT_DLL
-  #endif
+	/* DLL EXPORTS and IMPORTS */
+	#if defined(LIBLEPT_EXPORTS)
+		#define LEPT_DLL __declspec(dllexport)
+	#elif defined(LIBLEPT_IMPORTS)
+		#define LEPT_DLL __declspec(dllimport)
+	#else
+		#define LEPT_DLL
+	#endif
 #else  /* non-Windows specifics */
-  #include <stdint.h>
-  #define LEPT_DLL
+	#include <stdint.h>
+	#define LEPT_DLL
 #endif  /* _WIN32 */
 
 typedef intptr_t l_intptr_t;
@@ -106,9 +106,11 @@ typedef uintptr_t l_uintptr_t;
 #define  HAVE_LIBWEBP     0
 #define  HAVE_LIBJP2K     0
 
-    /* Leptonica supports both OpenJPEG 2.0 and 2.1.  If you have a
-     * version of openjpeg (HAVE_LIBJP2K) that is not 2.1, set the
-     * path to the openjpeg.h header in angle brackets here. */
+/* 
+ * Leptonica supports both OpenJPEG 2.0 and 2.1.  If you have a version 
+ * of openjpeg (HAVE_LIBJP2K) that is not 2.1, set the path to the 
+ * openjpeg.h header in angle brackets here. 
+ */
 #define  LIBJP2K_HEADER   <openjpeg-2.1/openjpeg.h>
 #endif  /* ! HAVE_CONFIG_H etc. */
 
@@ -168,9 +170,9 @@ typedef uintptr_t l_uintptr_t;
  * (except on Cygwin, which runs on Windows).
  */
 #if defined (__CYGWIN__)
-  #define  ADD_LEPTONICA_SUBDIR    1
+	#define ADD_LEPTONICA_SUBDIR	1
 #else
-  #define  ADD_LEPTONICA_SUBDIR    0
+	#define ADD_LEPTONICA_SUBDIR	0
 #endif
 
 
@@ -357,24 +359,21 @@ enum {
  */
 
 #ifdef  NO_CONSOLE_IO
-  #undef MINIMUM_SEVERITY
-  #undef DEFAULT_SEVERITY
-
-  #define MINIMUM_SEVERITY      L_SEVERITY_NONE
-  #define DEFAULT_SEVERITY      L_SEVERITY_NONE
-
+	#undef MINIMUM_SEVERITY
+	#undef DEFAULT_SEVERITY
+	#define MINIMUM_SEVERITY		L_SEVERITY_NONE
+	#define DEFAULT_SEVERITY		L_SEVERITY_NONE
 #else
-  #ifndef MINIMUM_SEVERITY
-    #define MINIMUM_SEVERITY    L_SEVERITY_INFO    /* Compile-time default */
-  #endif
-
-  #ifndef DEFAULT_SEVERITY
-    #define DEFAULT_SEVERITY    MINIMUM_SEVERITY   /* Run-time default */
-  #endif
+	#ifndef MINIMUM_SEVERITY
+		#define MINIMUM_SEVERITY	L_SEVERITY_INFO		/* Compile-time default */
+	#endif
+	#ifndef DEFAULT_SEVERITY
+		#define DEFAULT_SEVERITY	MINIMUM_SEVERITY	/* Run-time default */
+	#endif
 #endif
 
 
-/*  The run-time message severity threshold is defined in utils.c.  */
+/* The run-time message severity threshold is defined in utils.c. */
 LEPT_DLL extern l_int32  LeptMsgSeverity;
 
 /*

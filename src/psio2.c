@@ -95,12 +95,21 @@
     /* Set default for writing bounding box hint */
 static l_int32  var_PS_WRITE_BOUNDING_BOX = 1;
 
-static const l_int32  L_BUF_SIZE = 512;
-static const l_int32  DEFAULT_INPUT_RES   = 300;  /* typical scan res, ppi */
-static const l_int32  MIN_RES             = 5;
-static const l_int32  MAX_RES             = 3000;
+/* MSVC can't handle arrays dimensioned by static const integers */
+#if defined(_WIN32) && defined(_MSC_VER)
+	#define	L_BUF_SIZE							512	
+	#define DEFAULT_INPUT_RES					300
+	#define MIN_RES								5
+	#define MAX_RES								3000
+#else
+	static const l_int32  L_BUF_SIZE		=	512;
+	static const l_int32  DEFAULT_INPUT_RES	=	300;
+	static const l_int32  MIN_RES			=	5;
+	static const l_int32  MAX_RES			=	3000;
+#endif
 
-    /* For computing resolution that fills page to desired amount */
+
+/* For computing resolution that fills page to desired amount */
 static const l_int32  LETTER_WIDTH            = 612;   /* points */
 static const l_int32  LETTER_HEIGHT           = 792;   /* points */
 static const l_int32  A4_WIDTH                = 595;   /* points */
