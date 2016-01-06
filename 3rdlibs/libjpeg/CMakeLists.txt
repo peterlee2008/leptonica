@@ -8,29 +8,59 @@ cmake_minimum_required(VERSION 3.0.0)
 ###############################################################################
 # compiler/linker
 ###############################################################################
+
 if (WIN32)
 	add_definitions(-D__WIN32__)
 endif()
 
 if (CYGWIN)
-    add_definitions(-D__CYGWIN__)
+	add_definitions(-D__CYGWIN__)
 endif()
 
 # For MSVC compiler
 if (MSVC)
 	# Enable Security Features
-	string(APPEND ${CMAKE_C_FLAGS} " /guard /GS /analyze")
-	string(APPEND ${CMAKE_SHARED_LINKER_FLAGS} " /SAFESEH /NXCOMPAT")
+	if (NOT ( MSVC_VERSION LESS 1900 ))
+		set(GUARD "/guard:cf")	# New option in vs2015 or later
+	endif()
+	if (NOT ( MSVC_VERSION LESS 1700 ))
+		set(SDL "/sdl")			# New option in vs2012 or later
+		set(ANALYZE "/analyze")	# New option in vs2012 or later
+	endif()
+	if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
+		set(SAFESEH "/SAFESEH")	# It only works on windows 32bit
+	endif()
+	set(CMAKE_C_FLAGS 
+		"${CMAKE_C_FLAGS} ${ANALYZE} ${GUARD} ${SDL} /GS")
+	set(CMAKE_C_FLAGS_RELEASE 
+		"${CMAKE_C_FLAGS_RELEASE} ${ANALYZE} ${GUARD} ${SDL} /GS")
+	set(CMAKE_SHARED_LINKER_FLAGS 
+		"${CMAKE_SHARED_LINKER_FLAGS} ${SAFESEH} /NXCOMPAT")
+	set(CMAKE_MODULE_LINKER_FLAGS 
+		"${CMAKE_MODULE_LINKER_FLAGS} ${SAFESEH} /NXCOMPAT")
 	# Multithreaded building
 	if(MSVC_VERSION GREATER 1400)
 		set(PROCESSOR_COUNT "$ENV{NUMBER_OF_PROCESSORS}")
-		set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} /MP${PROCESSOR_COUNT}")
+		set(CMAKE_C_FLAGS 
+			"${CMAKE_C_FLAGS} /MP${PROCESSOR_COUNT}")
+		set(CMAKE_C_FLAGS_DEBUG 
+			"${CMAKE_C_FLAGS_DEBUG} /MP${PROCESSOR_COUNT}")
+		set(CMAKE_C_FLAGS_RELEASE 
+			"${CMAKE_C_FLAGS_RELEASE}  /MP${PROCESSOR_COUNT}")
 	endif()
 endif()
 # For MINGW compiler
 if (MINGW)
-	string(APPEND ${CMAKE_C_FLAGS} " -fPIE -fstack-protector-all")
-	string(APPEND ${CMAKE_SHARED_LINKER_FLAGS} " -Wl,-z,now -Wl,-z,relro")
+	# Enable Security Features
+	add_definitions(-D_FORTIFY_SOURCE=2)
+	set(CMAKE_C_FLAGS  
+		"${CMAKE_C_FLAGS} -fstack-protector-all")
+	set(CMAKE_C_FLAGS_RELEASE 
+		"${CMAKE_C_FLAGS_RELEASE} -fstack-protector-all")
+	#set(CMAKE_SHARED_LINKER_FLAGS 
+	#	"${CMAKE_SHARED_LINKER_FLAGS} -Wl,nxcompat -Wl,dynamicbase")
+	#set(CMAKE_MODULE_LINKER_FLAGS 
+	#	"${CMAKE_MODULE_LINKER_FLAGS} -Wl,nxcompat -Wl,dynamicbase")
 endif()
 
 
