@@ -93,9 +93,12 @@ local gzFile gz_open(path, fd, mode)
     int fd;
     const char *mode;
 {
-    gz_statep state;
-    size_t len;
-    int oflag;
+    gz_statep state = NULL; size_t len = 0; int oflag = 0;
+    
+#ifdef _WIN32
+    errno_t err = 0;
+#endif
+
 #ifdef O_CLOEXEC
     int cloexec = 0;
 #endif
@@ -104,13 +107,11 @@ local gzFile gz_open(path, fd, mode)
 #endif
 
     /* check input */
-    if (path == NULL)
-        return NULL;
+    if (path == NULL) return NULL;
 
     /* allocate gzFile structure to return */
     state = (gz_statep)malloc(sizeof(gz_state));
-    if (state == NULL)
-        return NULL;
+    if (state == NULL) return NULL;
     state->size = 0;            /* no buffers allocated yet */
     state->want = GZBUFSIZE;    /* requested buffer size */
     state->msg = NULL;          /* no error message yet */
@@ -190,30 +191,31 @@ local gzFile gz_open(path, fd, mode)
     /* save the path name for error messages */
 #ifdef _WIN32
     if (fd == -2) {
-        len = wcstombs(NULL, path, 0);
-        if (len == (size_t)-1)
-            len = 0;
-    }
-    else
+        /* Here, use security version instead. */
+        err = wcstombs_s(&len, NULL, 0, path, 0);
+        if (err != 0) free(state), return NULL;
+    } else
 #endif
-        len = strlen((const char *)path);
+    { len = strlen((const char *)path); }
     state->path = (char *)malloc(len + 1);
-    if (state->path == NULL) {
-        free(state);
-        return NULL;
-    }
+    if (state->path == NULL) free(state), return NULL;
 #ifdef _WIN32
-    if (fd == -2)
-        if (len)
-            wcstombs(state->path, path, len + 1);
-        else
+    if (fd == -2) {
+        if (len) {
+            err = wcstombs_s(
+                &len, state->path, len+1, path, _TRUNCATE);
+            if (err != 0) {
+                free(state->path); free(state); return NULL;
+            }
+        } else {
             *(state->path) = 0;
-    else
+        }
+    } else
 #endif
 #if !defined(NO_snprintf) && !defined(NO_vsnprintf)
-        snprintf(state->path, len + 1, "%s", (const char *)path);
+    { snprintf(state->path, len+1, "%s", (const char *)path); }
 #else
-        strcpy(state->path, path);
+    { strcpy(state->path, path); }
 #endif
 
     /* compute the flags for open() */
