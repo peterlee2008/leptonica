@@ -35,18 +35,18 @@
 #  ifdef UNDER_CE
 #    include <stdlib.h>
 #  endif
-#  define SET_BINARY_MODE(file) setmode(fileno(file), O_BINARY)
+#  define SET_BINARY_MODE(file) _setmode(fileno(file), O_BINARY)
 #else
 #  define SET_BINARY_MODE(file)
-#endif
-
-#ifdef _MSC_VER
-#  define snprintf _snprintf
 #endif
 
 #ifdef VMS
 #  define unlink delete
 #  define GZ_SUFFIX "-gz"
+#endif
+#ifdef WIN32
+# define unlink _unlink
+# define fileno _fileno
 #endif
 #ifdef RISCOS
 #  define unlink remove
@@ -198,37 +198,42 @@ gzFile gz_open(path, fd, mode)
     int fd;
     const char *mode;
 {
-    gzFile gz;
-    int ret;
-
+#if defined(_WIN32)
+    errno_t err = 0;
+#endif
+    int ret; gzFile gz;
     gz = malloc(sizeof(struct gzFile_s));
-    if (gz == NULL)
-        return NULL;
+    if (gz == NULL) return NULL;
     gz->write = strchr(mode, 'w') != NULL;
-    gz->strm.zalloc = myalloc;
     gz->strm.zfree = myfree;
     gz->strm.opaque = Z_NULL;
-    if (gz->write)
+    gz->strm.zalloc = myalloc;
+    if (gz->write) {
         ret = deflateInit2(&(gz->strm), -1, 8, 15 + 16, 8, 0);
-    else {
+    } else {
         gz->strm.next_in = 0;
         gz->strm.avail_in = Z_NULL;
         ret = inflateInit2(&(gz->strm), 15 + 16);
     }
-    if (ret != Z_OK) {
-        free(gz);
-        return NULL;
+    if (ret != Z_OK) { free(gz); return NULL; }
+#if defined(_WIN32)
+    if (path == NULL) {
+        gz->file = _fdopen(fd, gz->write ? "wb" : "rb");
+    } else {
+        err = fopen_s(&gz->file, path, gz->write ? "wb" : "rb");
+        if (err != 0) gz->file = NULL;
     }
-    gz->file = path == NULL ? fdopen(fd, gz->write ? "wb" : "rb") :
-                              fopen(path, gz->write ? "wb" : "rb");
+#else
+    if (path == NULL) {
+        gz->file = fdopen(fd, gz->write ? "wb" : "rb");
+    } else gz->file = fopen(path, gz->write ? "wb" : "rb");
+#endif
     if (gz->file == NULL) {
-        gz->write ? deflateEnd(&(gz->strm)) : inflateEnd(&(gz->strm));
-        free(gz);
-        return NULL;
+        if (gz->write) deflateEnd(&(gz->strm));
+        else inflateEnd(&(gz->strm));
+        free(gz); return NULL;
     }
-    gz->err = 0;
-    gz->msg = "";
-    return gz;
+    gz->err = 0; gz->msg = ""; return gz;
 }
 
 int gzwrite OF((gzFile, const void *, unsigned));
@@ -241,11 +246,9 @@ int gzwrite(gz, buf, len)
     z_stream *strm;
     unsigned char out[BUFLEN];
 
-    if (gz == NULL || !gz->write)
-        return 0;
+    if (gz == NULL || !gz->write) return 0;
     strm = &(gz->strm);
-    strm->next_in = (void *)buf;
-    strm->avail_in = len;
+    strm->next_in = (void *)buf; strm->avail_in = len;
     do {
         strm->next_out = out;
         strm->avail_out = BUFLEN;
@@ -458,27 +461,28 @@ void file_compress(file, mode)
     char  *file;
     char  *mode;
 {
+#if defined(_WIN32)
+    errno_t err = 0;
+#endif
+    FILE  *in; gzFile out;
     local char outfile[MAX_NAME_LEN];
-    FILE  *in;
-    gzFile out;
-
+ 
     if (strlen(file) + strlen(GZ_SUFFIX) >= sizeof(outfile)) {
         fprintf(stderr, "%s: filename too long\n", prog);
         exit(1);
     }
 
-#if !defined(NO_snprintf) && !defined(NO_vsnprintf)
-    snprintf(outfile, sizeof(outfile), "%s%s", file, GZ_SUFFIX);
+#if defined(_WIN32)
+    _snprintf_s(outfile, sizeof(outfile), _TRUNCATE, 
+        "%s%s", file, GZ_SUFFIX);
+    err = fopen_s(&in, file, "rb");
+    if (err != 0) { perror(file); exit(1); }
 #else
-    strcpy(outfile, file);
-    strcat(outfile, GZ_SUFFIX);
+    snprintf(outfile, sizeof(outfile), "%s%s", file, GZ_SUFFIX);
+    in = fopen(file, "rb");
+    if (in == NULL) { perror(file); exit(1); }
 #endif
 
-    in = fopen(file, "rb");
-    if (in == NULL) {
-        perror(file);
-        exit(1);
-    }
     out = gzopen(outfile, mode);
     if (out == NULL) {
         fprintf(stderr, "%s: can't gzopen %s\n", prog, outfile);
@@ -496,34 +500,35 @@ void file_compress(file, mode)
 void file_uncompress(file)
     char  *file;
 {
-    local char buf[MAX_NAME_LEN];
+#if defined(_WIN32)
+    errno_t err = 0;
+#endif
+    FILE  *out; gzFile in;
     char *infile, *outfile;
-    FILE  *out;
-    gzFile in;
     size_t len = strlen(file);
+    local char buf[MAX_NAME_LEN];
 
     if (len + strlen(GZ_SUFFIX) >= sizeof(buf)) {
         fprintf(stderr, "%s: filename too long\n", prog);
         exit(1);
     }
 
-#if !defined(NO_snprintf) && !defined(NO_vsnprintf)
-    snprintf(buf, sizeof(buf), "%s", file);
+#if defined(_WIN32)
+    _snprintf_s(buf, sizeof(buf), _TRUNCATE, "%s", file);
 #else
-    strcpy(buf, file);
+    snprintf(buf, sizeof(buf), "%s", file);
 #endif
 
-    if (len > SUFFIX_LEN && strcmp(file+len-SUFFIX_LEN, GZ_SUFFIX) == 0) {
-        infile = file;
-        outfile = buf;
-        outfile[len-3] = '\0';
+    if (len > SUFFIX_LEN && 
+        strcmp(file+len-SUFFIX_LEN, GZ_SUFFIX) == 0) {
+        infile = file; outfile = buf; outfile[len-3] = '\0';
     } else {
-        outfile = file;
-        infile = buf;
-#if !defined(NO_snprintf) && !defined(NO_vsnprintf)
-        snprintf(buf + len, sizeof(buf) - len, "%s", GZ_SUFFIX);
+        outfile = file; infile = buf;
+#if defined(_WIN32)
+        _snprintf_s(
+            buf+len, sizeof(buf)-len, _TRUNCATE, "%s", GZ_SUFFIX);
 #else
-        strcat(infile, GZ_SUFFIX);
+        snprintf(buf+len, sizeof(buf)-len, "%s", GZ_SUFFIX);
 #endif
     }
     in = gzopen(infile, "rb");
@@ -531,15 +536,15 @@ void file_uncompress(file)
         fprintf(stderr, "%s: can't gzopen %s\n", prog, infile);
         exit(1);
     }
+#if defined(_WIN32)
+    err = fopen_s(&out, outfile, "wb");
+    if (err != 0) { perror(file); exit(1); }
+#else
     out = fopen(outfile, "wb");
-    if (out == NULL) {
-        perror(file);
-        exit(1);
-    }
+    if (out == NULL) { perror(file); exit(1); }
+#endif
 
-    gz_uncompress(in, out);
-
-    unlink(infile);
+    gz_uncompress(in, out); unlink(infile);
 }
 
 
@@ -553,54 +558,41 @@ void file_uncompress(file)
  *   -1 to -9 : compression level
  */
 
-int main(argc, argv)
-    int argc;
-    char *argv[];
+int main(int argc, char *argv[])
 {
-    int copyout = 0;
-    int uncompr = 0;
-    gzFile file;
-    char *bname, outmode[20];
+#if defined(_WIN32)
+    errno_t err = 0;
+#endif
+    int copyout = 0; int uncompr = 0; 
+    gzFile file = NULL; FILE * in = NULL;
+    char *bname = NULL, outmode[20] = {0}; 
 
-#if !defined(NO_snprintf) && !defined(NO_vsnprintf)
-    snprintf(outmode, sizeof(outmode), "%s", "wb6 ");
+#if defined(_WIN32)
+    _snprintf_s(outmode, sizeof(outmode), _TRUNCATE, "%s", "wb6 ");
 #else
-    strcpy(outmode, "wb6 ");
+    snprintf(outmode, sizeof(outmode), "%s", "wb6 ");
 #endif
 
-    prog = argv[0];
-    bname = strrchr(argv[0], '/');
-    if (bname)
-      bname++;
-    else
-      bname = argv[0];
+    prog = argv[0]; bname = strrchr(argv[0], '/');
+    if (bname) bname++;
+    else bname = argv[0];
     argc--, argv++;
 
-    if (!strcmp(bname, "gunzip"))
-      uncompr = 1;
-    else if (!strcmp(bname, "zcat"))
-      copyout = uncompr = 1;
+    if (!strcmp(bname, "gunzip")) uncompr = 1;
+    else if (!strcmp(bname, "zcat")) copyout = uncompr = 1;
 
     while (argc > 0) {
-      if (strcmp(*argv, "-c") == 0)
-        copyout = 1;
-      else if (strcmp(*argv, "-d") == 0)
-        uncompr = 1;
-      else if (strcmp(*argv, "-f") == 0)
-        outmode[3] = 'f';
-      else if (strcmp(*argv, "-h") == 0)
-        outmode[3] = 'h';
-      else if (strcmp(*argv, "-r") == 0)
-        outmode[3] = 'R';
-      else if ((*argv)[0] == '-' && (*argv)[1] >= '1' && (*argv)[1] <= '9' &&
-               (*argv)[2] == 0)
-        outmode[2] = (*argv)[1];
-      else
-        break;
-      argc--, argv++;
+        if      (strcmp(*argv, "-c") == 0) copyout = 1;
+        else if (strcmp(*argv, "-d") == 0) uncompr = 1;
+        else if (strcmp(*argv, "-f") == 0) outmode[3] = 'f';
+        else if (strcmp(*argv, "-h") == 0) outmode[3] = 'h';
+        else if (strcmp(*argv, "-r") == 0) outmode[3] = 'R';
+        else if ((*argv)[0] == '-' && (*argv)[1] >= '1' && 
+        (*argv)[1] <= '9' && (*argv)[2] == 0) outmode[2] = (*argv)[1];
+        else break;
+        argc--, argv++;
     }
-    if (outmode[3] == ' ')
-        outmode[3] = 0;
+    if (outmode[3] == ' ') outmode[3] = 0;
     if (argc == 0) {
         SET_BINARY_MODE(stdin);
         SET_BINARY_MODE(stdout);
@@ -621,26 +613,29 @@ int main(argc, argv)
             if (uncompr) {
                 if (copyout) {
                     file = gzopen(*argv, "rb");
-                    if (file == NULL)
+                    if (file == NULL) {
                         fprintf(stderr, "%s: can't gzopen %s\n", prog, *argv);
-                    else
+                    } else {
                         gz_uncompress(file, stdout);
+                    }
                 } else {
                     file_uncompress(*argv);
                 }
             } else {
                 if (copyout) {
-                    FILE * in = fopen(*argv, "rb");
-
+                #if defined(_WIN32)
+                    err = fopen_s(&in, *argv, "rb");
+                    if (err != 0) in = NULL;
+                #else
+                    in = fopen(*argv, "rb");
+                #endif
                     if (in == NULL) {
                         perror(*argv);
                     } else {
                         file = gzdopen(fileno(stdout), outmode);
                         if (file == NULL) error("can't gzdopen stdout");
-
                         gz_compress(in, file);
                     }
-
                 } else {
                     file_compress(*argv, outmode);
                 }

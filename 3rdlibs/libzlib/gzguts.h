@@ -18,24 +18,28 @@
 #  define ZLIB_INTERNAL
 #endif
 
-#include <stdio.h>
 #include "zlib.h"
+#include <stdio.h>
+#include <fcntl.h>
+
 #ifdef STDC
 #  include <string.h>
 #  include <stdlib.h>
 #  include <limits.h>
 #endif
-#include <fcntl.h>
 
 #ifdef _WIN32
 #  include <stddef.h>
+#  include <share.h>
+#  include <sys\stat.h>
 #endif
 
 #if defined(__TURBOC__) || defined(_MSC_VER) || defined(_WIN32)
 #  include <io.h>
 #endif
 
-#ifdef WINAPI_FAMILY
+/* Enable these marcos by default on windows */
+#if defined(WINAPI_FAMILY) || defined(_WIN32)
 #  define open _open
 #  define read _read
 #  define write _write
@@ -115,16 +119,18 @@
 #endif
 
 /* get errno and strerror definition */
-#if defined UNDER_CE
+#if defined(UNDER_CE)
 #  include <windows.h>
-#  define zstrerror() gz_strwinerror((DWORD)GetLastError())
+#  define zstrerror() gz_strwinerror(GetLastError())
+#  define zfreestr(p) free(p)
+#elif defined(_WIN32)
+#  include <errno.h>
+#  define zstrerror() gz_strerror(errno)
+#  define zfreestr(p) free(p)
 #else
-#  ifndef NO_STRERROR
-#    include <errno.h>
-#    define zstrerror() strerror(errno)
-#  else
-#    define zstrerror() "stdio error (consult errno)"
-#  endif
+#  include <errno.h>
+#  define zstrerror() strerror(errno)
+#  define zfreestr(p) ((void)(p))
 #endif
 
 /* provide prototypes for these when building zlib without LFS */
@@ -159,12 +165,12 @@
 
 /* internal gzip file state data structure */
 typedef struct {
-        /* exposed contents for gzgetc() macro */
+    /* exposed contents for gzgetc() macro */
     struct gzFile_s x;      /* "x" for exposed */
                             /* x.have: number of bytes available at x.next */
                             /* x.next: next output data to deliver or write */
                             /* x.pos: current position in uncompressed data */
-        /* used for both reading and writing */
+    /* used for both reading and writing */
     int mode;               /* see gzip modes above */
     int fd;                 /* file descriptor */
     char *path;             /* path or fd for error messages */
@@ -173,30 +179,34 @@ typedef struct {
     unsigned char *in;      /* input buffer */
     unsigned char *out;     /* output buffer (double-sized when reading) */
     int direct;             /* 0 if processing gzip, 1 if transparent */
-        /* just for reading */
+    /* just for reading */
     int how;                /* 0: get header, 1: copy, 2: decompress */
     z_off64_t start;        /* where the gzip data started, for rewinding */
     int eof;                /* true if end of input file reached */
     int past;               /* true if read requested past end */
-        /* just for writing */
+    /* just for writing */
     int level;              /* compression level */
     int strategy;           /* compression strategy */
-        /* seek request */
+    /* seek request */
     z_off64_t skip;         /* amount to skip (already rewound if backwards) */
     int seek;               /* true if seek request pending */
-        /* error information */
+    /* error information */
     int err;                /* error code */
     char *msg;              /* error message */
-        /* zlib inflate or deflate stream */
+    /* zlib inflate or deflate stream */
     z_stream strm;          /* stream structure in-place (not a pointer) */
 } gz_state;
 typedef gz_state FAR *gz_statep;
 
 /* shared functions */
-void ZLIB_INTERNAL gz_error OF((gz_statep, int, const char *));
-#if defined UNDER_CE
-char ZLIB_INTERNAL *gz_strwinerror OF((DWORD error));
+#if defined(_WIN32)
+char ZLIB_INTERNAL *gz_strerror(uInt error);
 #endif
+#if defined(UNDER_CE)
+char ZLIB_INTERNAL *gz_strwinerror OF((uInt error));
+#endif
+void ZLIB_INTERNAL  gz_error OF((gz_statep, int, const char *));
+
 
 /* GT_OFF(x), where x is an unsigned value, is true if x > maximum z_off64_t
    value -- needed when comparing unsigned to z_off64_t, which is signed

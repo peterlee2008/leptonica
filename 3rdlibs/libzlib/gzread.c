@@ -23,21 +23,16 @@ local int gz_load(state, buf, len, have)
     unsigned len;
     unsigned *have;
 {
-    int ret;
-
-    *have = 0;
-    do {
+    int ret = 0;
+    for (*have = 0; *have < len; *have += ret) {
         ret = read(state->fd, buf + *have, len - *have);
-        if (ret <= 0)
-            break;
-        *have += ret;
-    } while (*have < len);
-    if (ret < 0) {
-        gz_error(state, Z_ERRNO, zstrerror());
-        return -1;
+        if (ret <  0) { char *errstr = zstrerror();
+            if (errstr != NULL) {
+                gz_error(state, Z_ERRNO, errstr); zfreestr(errstr);
+            } else gz_error(state, Z_ERRNO, "Fail to get error info");
+            return -1;
+        } else if (ret == 0) { state->eof = 1; break; }
     }
-    if (ret == 0)
-        state->eof = 1;
     return 0;
 }
 

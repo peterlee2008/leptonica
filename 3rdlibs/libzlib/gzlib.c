@@ -19,57 +19,71 @@
 local void gz_reset OF((gz_statep));
 local gzFile gz_open OF((const void *, int, const char *));
 
-#if defined UNDER_CE
-
-/* Map the Windows error number in ERROR to a locale-dependent error message
-   string and return a pointer to it.  Typically, the values for ERROR come
-   from GetLastError.
-
-   The string pointed to shall not be modified by the application, but may be
-   overwritten by a subsequent call to gz_strwinerror
-
-   The gz_strwinerror function does not change the current setting of
-   GetLastError. */
-char ZLIB_INTERNAL *gz_strwinerror (error)
-     DWORD error;
+#if defined(_WIN32)
+char ZLIB_INTERNAL *gz_strerror(uInt error)
 {
-    static char buf[1024];
-
-    wchar_t *msgbuf;
-    DWORD lasterr = GetLastError();
-    DWORD chars = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM
-        | FORMAT_MESSAGE_ALLOCATE_BUFFER,
-        NULL,
-        error,
-        0, /* Default language */
-        (LPVOID)&msgbuf,
-        0,
-        NULL);
-    if (chars != 0) {
-        /* If there is an \r\n appended, zap it.  */
-        if (chars >= 2
-            && msgbuf[chars - 2] == '\r' && msgbuf[chars - 1] == '\n') {
-            chars -= 2;
-            msgbuf[chars] = 0;
-        }
-
-        if (chars > sizeof (buf) - 1) {
-            chars = sizeof (buf) - 1;
-            msgbuf[chars] = 0;
-        }
-
-        wcstombs(buf, msgbuf, chars + 1);
-        LocalFree(msgbuf);
+    char *buffer = NULL; errno_t err = 0;
+    buffer = (char *)malloc(1024);  /* 1k is fine */
+    if (buffer != NULL) {
+        err = strerror_s(buffer, 1024, error);
+        if (err != 0) { free(buffer); buffer = NULL; }
     }
-    else {
-        sprintf(buf, "unknown win32 error (%ld)", error);
-    }
-
-    SetLastError(lasterr);
-    return buf;
+    return buffer;
 }
+#endif  /* _WIN32 */
 
-#endif /* UNDER_CE */
+#if defined(UNDER_CE)
+/* 
+ * Map the Windows error number in ERROR to a locale-dependent error 
+ * message string and return a pointer to it.  Typically, the values 
+ * for ERROR come from GetLastError.
+
+ * The string pointed to shall not be modified by the application, but 
+ * may be overwritten by a subsequent call to gz_strwinerror
+
+ * The gz_strwinerror function does not change the current setting of
+ * GetLastError. 
+ * 
+ * Anyways, this function is not suitable for multi-thread
+ */
+char ZLIB_INTERNAL *gz_strwinerror(uInt error)
+{
+    char *buffer = NULL; char *tempbuf = NULL;
+    DWORD chars = 0; int cchars = 0; DWORD lasterr = 0; 
+    lasterr = GetLastError();       /* svae current error code */
+    chars = FormatMessageA (
+        FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_ALLOCATE_BUFFER, 
+        NULL, (DWORD)error, 0, (LPTSTR)&tempbuf, (DWORD)0, NULL 
+    ); 
+    if (chars != 0 && tempbuf != NULL) {
+        /* If there is an \r\n appended, zap it. */
+        if (chars >= 2 && 
+            tempbuf[chars-2] == '\r' && tempbuf[chars-1] == '\n') {
+            chars -= 2; tempbuf[chars-2] = 0; tempbuf[chars-1] = 0;
+        }
+        buffer = (char *)malloc(chars + 1);
+        if (buffer != NULL) { strcpy_s(buffer, chars+1, tempbuf); }
+        /* 
+         * LocalFree is not in the modern SDK (on Windows 10), 
+         * so it cannot be used to free the result buffer.
+         * Instead, use HeapFree (GetProcessHeap(), allocatedMessage). 
+         * In this case, this is the same as calling LocalFree on 
+         * memory.
+         */
+        LocalFree(tempbuf);         /* free the buffer */
+    } else {
+        buffer = (char *)malloc(1024);
+        if (buffer != NULL) {
+            cchars = _snprintf_s(buffer, 1024, 
+                _TRUNCATE, "unknown win32 error (%ld)", error);
+            if(cchars <= 0) { free(buffer); buffer = NULL; }
+        }
+    }
+    SetLastError(lasterr);          /* recover the last error */
+    return (char ZLIB_INTERNAL *)buffer;
+}
+#endif  /* UNDER_CE */
+
 
 /* Reset gzip file state */
 local void gz_reset(state)
@@ -86,6 +100,7 @@ local void gz_reset(state)
     state->x.pos = 0;               /* no uncompressed data yet */
     state->strm.avail_in = 0;       /* no input data yet */
 }
+
 
 /* Open a gzip file either by name or file descriptor. */
 local gzFile gz_open(path, fd, mode)
@@ -112,15 +127,15 @@ local gzFile gz_open(path, fd, mode)
     /* allocate gzFile structure to return */
     state = (gz_statep)malloc(sizeof(gz_state));
     if (state == NULL) return NULL;
-    state->size = 0;            /* no buffers allocated yet */
-    state->want = GZBUFSIZE;    /* requested buffer size */
-    state->msg = NULL;          /* no error message yet */
-
+    state->msg = NULL;                  /* no error message yet */
+    state->want = GZBUFSIZE;            /* requested buffer size */
+    state->size = 0;                    /* no buffers allocated yet */
+ 
     /* interpret mode */
     state->mode = GZ_NONE;
     state->level = Z_DEFAULT_COMPRESSION;
-    state->strategy = Z_DEFAULT_STRATEGY;
     state->direct = 0;
+    state->strategy = Z_DEFAULT_STRATEGY;
     while (*mode) {
         if (*mode >= '0' && *mode <= '9')
             state->level = *mode - '0';
@@ -167,25 +182,19 @@ local gzFile gz_open(path, fd, mode)
             case 'T':
                 state->direct = 1;
                 break;
-            default:        /* could consider as an error, but just ignore */
+            default:    /* could consider as an error, but just ignore */
                 ;
             }
         mode++;
     }
 
     /* must provide an "r", "w", or "a" */
-    if (state->mode == GZ_NONE) {
-        free(state);
-        return NULL;
-    }
+    if (state->mode == GZ_NONE) { free(state); return NULL; }
 
     /* can't force transparent read */
     if (state->mode == GZ_READ) {
-        if (state->direct) {
-            free(state);
-            return NULL;
-        }
-        state->direct = 1;      /* for empty file */
+        if (state->direct) { free(state); return NULL; }
+        state->direct = 1;          /* for empty file */
     }
 
     /* save the path name for error messages */
@@ -193,12 +202,12 @@ local gzFile gz_open(path, fd, mode)
     if (fd == -2) {
         /* Here, use security version instead. */
         err = wcstombs_s(&len, NULL, 0, path, 0);
-        if (err != 0) free(state), return NULL;
+        if (err != 0) { free(state); return NULL; }
     } else
 #endif
     { len = strlen((const char *)path); }
     state->path = (char *)malloc(len + 1);
-    if (state->path == NULL) free(state), return NULL;
+    if (state->path == NULL) { free(state); return NULL; }
 #ifdef _WIN32
     if (fd == -2) {
         if (len) {
@@ -207,16 +216,11 @@ local gzFile gz_open(path, fd, mode)
             if (err != 0) {
                 free(state->path); free(state); return NULL;
             }
-        } else {
-            *(state->path) = 0;
-        }
+        } else *(state->path) = 0;
     } else
 #endif
-#if !defined(NO_snprintf) && !defined(NO_vsnprintf)
-    { snprintf(state->path, len+1, "%s", (const char *)path); }
-#else
-    { strcpy(state->path, path); }
-#endif
+    /* Here use the security version instead */
+    { strncpy_s(state->path, len+1, path, len); }
 
     /* compute the flags for open() */
     oflag =
@@ -229,29 +233,36 @@ local gzFile gz_open(path, fd, mode)
 #ifdef O_CLOEXEC
         (cloexec ? O_CLOEXEC : 0) |
 #endif
-        (state->mode == GZ_READ ?
-         O_RDONLY :
-         (O_WRONLY | O_CREAT |
+        (state->mode == GZ_READ ? O_RDONLY : (O_WRONLY | O_CREAT |
 #ifdef O_EXCL
-          (exclusive ? O_EXCL : 0) |
+            (exclusive ? O_EXCL : 0) |
 #endif
-          (state->mode == GZ_WRITE ?
-           O_TRUNC :
-           O_APPEND)));
+            (state->mode == GZ_WRITE ? O_TRUNC : O_APPEND))
+        );
 
     /* open the file with the appropriate flags (or just use fd) */
-    state->fd = fd > -1 ? fd : (
 #ifdef _WIN32
-        fd == -2 ? _wopen(path, oflag, 0666) :
-#endif
-        open((const char *)path, oflag, 0666));
-    if (state->fd == -1) {
-        free(state->path);
-        free(state);
-        return NULL;
+    if (fd == -1) {
+        printf("\nfile -> %d\n", state->fd);
+        err = _sopen_s(
+            &state->fd, path, oflag, _SH_DENYWR, _S_IREAD|_S_IWRITE);
+    } else if (fd == -2) {
+        err = _wsopen_s(
+            &state->fd, path, oflag, _SH_DENYWR, _S_IREAD|_S_IWRITE);
+    } else if (fd >= 0) {
+        err = 0; state->fd = fd;
+    } else {
+        err = EINVAL; state->fd = -1;
     }
-    if (state->mode == GZ_APPEND)
-        state->mode = GZ_WRITE;         /* simplify later checks */
+    if (err != 0) { free(state->path); free(state); return NULL; }
+#else
+    state->fd = fd > -1 ? fd : open((const char*)path, oflag, 0666);
+    if (state->fd == -1) {
+        free(state->path); free(state); return NULL;
+    }
+#endif
+
+    if (state->mode == GZ_APPEND) state->mode = GZ_WRITE;
 
     /* save the current position for rewinding (only if reading) */
     if (state->mode == GZ_READ) {
@@ -287,19 +298,21 @@ gzFile ZEXPORT gzdopen(fd, mode)
     int fd;
     const char *mode;
 {
-    char *path;         /* identifier for error messages */
-    gzFile gz;
+    /* identifier for error messages */
+    char *path; gzFile gz;
 
-    if (fd == -1 || (path = (char *)malloc(7 + 3 * sizeof(int))) == NULL)
+    if (fd < 0 || (path=(char *)malloc(7+3*sizeof(int))) == NULL)
         return NULL;
-#if !defined(NO_snprintf) && !defined(NO_vsnprintf)
-    snprintf(path, 7 + 3 * sizeof(int), "<fd:%d>", fd); /* for debugging */
+
+    /* Here, we simplify the code, snprintf must exist */
+#if defined(_WIN32)
+    _snprintf_s(                                    /* for debugging */
+        path, 7+3*sizeof(int), _TRUNCATE, "<fd:%d>", fd);  
 #else
-    sprintf(path, "<fd:%d>", fd);   /* for debugging */
+    snprintf(path, 7+3*sizeof(int), "<fd:%d>", fd); /* for debugging */
 #endif
-    gz = gz_open(path, fd, mode);
-    free(path);
-    return gz;
+
+    gz = gz_open(path, fd, mode); free(path); return gz;
 }
 
 /* -- see zlib.h -- */
@@ -579,41 +592,37 @@ void ZLIB_INTERNAL gz_error(state, err, msg)
     int err;
     const char *msg;
 {
+    size_t bufsize = 0;
+    
     /* free previously allocated message and clear */
     if (state->msg != NULL) {
-        if (state->err != Z_MEM_ERROR)
-            free(state->msg);
+        if (state->err != Z_MEM_ERROR) free(state->msg);
         state->msg = NULL;
     }
 
     /* if fatal, set state->x.have to 0 so that the gzgetc() macro fails */
-    if (err != Z_OK && err != Z_BUF_ERROR)
-        state->x.have = 0;
+    if (err != Z_OK && err != Z_BUF_ERROR) state->x.have = 0;
 
     /* set error code, and if no message, then done */
     state->err = err;
-    if (msg == NULL)
-        return;
+    if (msg == NULL) return;
 
     /* for an out of memory error, return literal string when requested */
-    if (err == Z_MEM_ERROR)
-        return;
+    if (err == Z_MEM_ERROR) return;
 
     /* construct error message with path */
-    if ((state->msg = (char *)malloc(strlen(state->path) + strlen(msg) + 3)) ==
-            NULL) {
-        state->err = Z_MEM_ERROR;
-        return;
+    bufsize = strlen(state->path) + strlen(msg) + 3;
+    if ((state->msg = (char *)malloc(bufsize)) == NULL) {
+        state->err = Z_MEM_ERROR; return;
     }
-#if !defined(NO_snprintf) && !defined(NO_vsnprintf)
-    snprintf(state->msg, strlen(state->path) + strlen(msg) + 3,
-             "%s%s%s", state->path, ": ", msg);
+    
+    /* Here, we simplify the code, snprintf must exist */
+#if defined(_WIN32)
+    _snprintf_s(state->msg, bufsize, _TRUNCATE, "%s%s%s", 
+        state->path, ": ", msg);
 #else
-    strcpy(state->msg, state->path);
-    strcat(state->msg, ": ");
-    strcat(state->msg, msg);
+    snprintf(state->msg, bufsize, "%s%s%s", state->path, ": ", msg);
 #endif
-    return;
 }
 
 #ifndef INT_MAX
@@ -627,9 +636,7 @@ unsigned ZLIB_INTERNAL gz_intmax()
 
     p = 1;
     do {
-        q = p;
-        p <<= 1;
-        p++;
+        q = p; p <<= 1; p++;
     } while (p > q);
     return q >> 1;
 }
