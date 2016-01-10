@@ -53,33 +53,29 @@ uint32 TIFFGetTagListEntry( TIFF *tif, int tag_index )
 }
 
 /*
-** This provides read/write access to the TIFFTagMethods within the TIFF
-** structure to application code without giving access to the private
-** TIFF structure.
+** This provides read/write access to the TIFFTagMethods within the 
+** TIFF structure to application code without giving access to the 
+** private TIFF structure.
 */
 TIFFTagMethods *TIFFAccessTagMethods( TIFF *tif )
-
 {
     return &(tif->tif_tagmethods);
 }
 
 void *TIFFGetClientInfo( TIFF *tif, const char *name )
-
 {
     TIFFClientInfoLink *link = tif->tif_clientinfo;
 
     while( link != NULL && strcmp(link->name,name) != 0 )
         link = link->next;
 
-    if( link != NULL )
-        return link->data;
-    else
-        return NULL;
+    if( link != NULL ) return link->data;
+    else return NULL;
 }
 
 void TIFFSetClientInfo( TIFF *tif, void *data, const char *name )
-
 {
+    size_t namelen = strlen(name);
     TIFFClientInfoLink *link = tif->tif_clientinfo;
 
     /*
@@ -88,24 +84,17 @@ void TIFFSetClientInfo( TIFF *tif, void *data, const char *name )
     */
     while( link != NULL && strcmp(link->name,name) != 0 )
         link = link->next;
-
-    if( link != NULL )
-    {
-        link->data = data;
-        return;
-    }
+    if( link != NULL ) { link->data = data; return; }
 
     /*
-    ** Create a new link.
+    ** Create a new link. (Not secure, this function need to be rewritten)
     */
-
-    link = (TIFFClientInfoLink *) _TIFFmalloc(sizeof(TIFFClientInfoLink));
+    link = (TIFFClientInfoLink *)_TIFFmalloc(sizeof(TIFFClientInfoLink));
     assert (link != NULL);
-    link->next = tif->tif_clientinfo;
-    link->name = (char *) _TIFFmalloc((tmsize_t)(strlen(name)+1));
-    assert (link->name != NULL);
-    strcpy(link->name, name);
     link->data = data;
+    link->next = tif->tif_clientinfo;
+    link->name = (char *)_TIFFmalloc((tmsize_t)(namelen+1));
+    assert (link->name != NULL); strncpy(link->name, namelen, name);
 
     tif->tif_clientinfo = link;
 }

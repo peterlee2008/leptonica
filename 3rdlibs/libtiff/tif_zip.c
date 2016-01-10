@@ -189,8 +189,12 @@ ZIPDecode(TIFF* tif, uint8* op, tmsize_t occ, uint16 s)
 	} while (sp->stream.avail_out > 0);
 	if (sp->stream.avail_out != 0) {
 		TIFFErrorExt(tif->tif_clientdata, module,
-		    "Not enough data at scanline %lu (short " TIFF_UINT64_FORMAT " bytes)",
-		    (unsigned long) tif->tif_row, (TIFF_UINT64_T) sp->stream.avail_out);
+		    "Not enough data at scanline %lu (short " 
+            TIFF_UINT64_FORMAT 
+            " bytes)",
+		    (unsigned long)tif->tif_row, 
+            (TIFF_UINT64_T)sp->stream.avail_out
+        );
 		return (0);
 	}
 
@@ -224,29 +228,42 @@ ZIPSetupEncode(TIFF* tif)
 /*
  * Reset encoding state at the start of a strip.
  */
-static int
-ZIPPreEncode(TIFF* tif, uint16 s)
+static int ZIPPreEncode(TIFF* tif, uint16 s)
 {
-	static const char module[] = "ZIPPreEncode";
-	ZIPState *sp = EncoderState(tif);
+    static const char module[] = "ZIPPreEncode";
+    ZIPState *sp = EncoderState(tif);
+    multi_integer integer = {0};
 
-	(void) s;
-	assert(sp != NULL);
-	if( sp->state != ZSTATE_INIT_ENCODE )
-            tif->tif_setupencode( tif );
+    (void) s;
+    assert(sp != NULL);
+    if(sp->state != ZSTATE_INIT_ENCODE) tif->tif_setupencode(tif);
 
-	sp->stream.next_out = tif->tif_rawdata;
-	assert(sizeof(sp->stream.avail_out)==4);  /* if this assert gets raised,
-	    we need to simplify this code to reflect a ZLib that is likely updated
-	    to deal with 8byte memory sizes, though this code will respond
-	    apropriately even before we simplify it */
-	sp->stream.avail_out = tif->tif_rawdatasize;
-	if ((tmsize_t)sp->stream.avail_out != tif->tif_rawdatasize)
-	{
-		TIFFErrorExt(tif->tif_clientdata, module, "ZLib cannot deal with buffers this size");
-		return (0);
-	}
-	return (deflateReset(&sp->stream) == Z_OK);
+    sp->stream.next_out = tif->tif_rawdata;
+    /* 
+     * if this assert gets raised, we need to simplify this code to 
+     * reflect a ZLib that is likely updated to deal with 8byte memory 
+     * sizes, though this code will respond apropriately even before 
+     * we simplify it 
+     */
+    assert(sizeof(sp->stream.avail_out)==4);  
+    /* 
+     * Here, we use multi integer union to convert different type of 
+     * integer without warnings 
+     */
+    integer.autoint = tif->tif_rawdatasize;
+    sp->stream.avail_out  = integer.uint32;
+    if ((tmsize_t)sp->stream.avail_out != tif->tif_rawdatasize) {
+        TIFFErrorExt(tif->tif_clientdata, module, 
+            "ZLib cannot deal with buffers this size");
+        return (0);
+    }
+    //sp->stream.avail_out = tif->tif_rawdatasize;
+    //if ((tmsize_t)sp->stream.avail_out != tif->tif_rawdatasize) {
+    //    TIFFErrorExt(tif->tif_clientdata, module, 
+    //        "ZLib cannot deal with buffers this size");
+    //    return (0);
+    //}
+    return (deflateReset(&sp->stream) == Z_OK);
 }
 
 /*

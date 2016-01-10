@@ -34,76 +34,76 @@
 static int
 TIFFNoEncode(TIFF* tif, const char* method)
 {
-	const TIFFCodec* c = TIFFFindCODEC(tif->tif_dir.td_compression);
+    const TIFFCodec* c = TIFFFindCODEC(tif->tif_dir.td_compression);
 
-	if (c) {
-		TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
-			     "%s %s encoding is not implemented",
-			     c->name, method);
-	} else {
-		TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
-			"Compression scheme %u %s encoding is not implemented",
-			     tif->tif_dir.td_compression, method);
-	}
-	return (-1);
+    if (c) {
+        TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
+                 "%s %s encoding is not implemented",
+                 c->name, method);
+    } else {
+        TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
+            "Compression scheme %u %s encoding is not implemented",
+                 tif->tif_dir.td_compression, method);
+    }
+    return (-1);
 }
 
 int
 _TIFFNoRowEncode(TIFF* tif, uint8* pp, tmsize_t cc, uint16 s)
 {
-	(void) pp; (void) cc; (void) s;
-	return (TIFFNoEncode(tif, "scanline"));
+    (void) pp; (void) cc; (void) s;
+    return (TIFFNoEncode(tif, "scanline"));
 }
 
 int
 _TIFFNoStripEncode(TIFF* tif, uint8* pp, tmsize_t cc, uint16 s)
 {
-	(void) pp; (void) cc; (void) s;
-	return (TIFFNoEncode(tif, "strip"));
+    (void) pp; (void) cc; (void) s;
+    return (TIFFNoEncode(tif, "strip"));
 }
 
 int
 _TIFFNoTileEncode(TIFF* tif, uint8* pp, tmsize_t cc, uint16 s)
 {
-	(void) pp; (void) cc; (void) s;
-	return (TIFFNoEncode(tif, "tile"));
+    (void) pp; (void) cc; (void) s;
+    return (TIFFNoEncode(tif, "tile"));
 }
 
 static int
 TIFFNoDecode(TIFF* tif, const char* method)
 {
-	const TIFFCodec* c = TIFFFindCODEC(tif->tif_dir.td_compression);
+    const TIFFCodec* c = TIFFFindCODEC(tif->tif_dir.td_compression);
 
-	if (c)
-		TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
-			     "%s %s decoding is not implemented",
-			     c->name, method);
-	else
-		TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
-			     "Compression scheme %u %s decoding is not implemented",
-			     tif->tif_dir.td_compression, method);
-	return (-1);
+    if (c)
+        TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
+                 "%s %s decoding is not implemented",
+                 c->name, method);
+    else
+        TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
+                 "Compression scheme %u %s decoding is not implemented",
+                 tif->tif_dir.td_compression, method);
+    return (-1);
 }
 
 int
 _TIFFNoFixupTags(TIFF* tif)
 {
-	(void) tif;
-	return (1);
+    (void) tif;
+    return (1);
 }
 
 int
 _TIFFNoRowDecode(TIFF* tif, uint8* pp, tmsize_t cc, uint16 s)
 {
-	(void) pp; (void) cc; (void) s;
-	return (TIFFNoDecode(tif, "scanline"));
+    (void) pp; (void) cc; (void) s;
+    return (TIFFNoDecode(tif, "scanline"));
 }
 
 int
 _TIFFNoStripDecode(TIFF* tif, uint8* pp, tmsize_t cc, uint16 s)
 {
-	(void) pp; (void) cc; (void) s;
-	return (TIFFNoDecode(tif, "strip"));
+    (void) pp; (void) cc; (void) s;
+    return (TIFFNoDecode(tif, "strip"));
 }
 
 int
@@ -116,10 +116,10 @@ _TIFFNoTileDecode(TIFF* tif, uint8* pp, tmsize_t cc, uint16 s)
 int
 _TIFFNoSeek(TIFF* tif, uint32 off)
 {
-	(void) off;
-	TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
-		     "Compression algorithm does not support random access");
-	return (0);
+    (void) off;
+    TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
+             "Compression algorithm does not support random access");
+    return (0);
 }
 
 int
@@ -178,63 +178,61 @@ TIFFSetCompressionScheme(TIFF* tif, int scheme)
  * by this library.
  */
 typedef struct _codec {
-	struct _codec* next;
-	TIFFCodec* info;
+    struct _codec* next;
+    TIFFCodec* info;
 } codec_t;
 static codec_t* registeredCODECS = NULL;
 
 const TIFFCodec*
 TIFFFindCODEC(uint16 scheme)
 {
-	const TIFFCodec* c;
-	codec_t* cd;
+    const TIFFCodec* c; codec_t* cd;
 
-	for (cd = registeredCODECS; cd; cd = cd->next)
-		if (cd->info->scheme == scheme)
-			return ((const TIFFCodec*) cd->info);
-	for (c = _TIFFBuiltinCODECS; c->name; c++)
-		if (c->scheme == scheme)
-			return (c);
-	return ((const TIFFCodec*) 0);
+    for (cd = registeredCODECS; cd; cd = cd->next)
+        if (cd->info->scheme == scheme)
+            return ((const TIFFCodec*) cd->info);
+    for (c = _TIFFBuiltinCODECS; c->name; c++)
+        if (c->scheme == scheme)
+            return (c);
+    return ((const TIFFCodec*) 0);
 }
 
 TIFFCodec*
 TIFFRegisterCODEC(uint16 scheme, const char* name, TIFFInitMethod init)
 {
-	codec_t* cd = (codec_t*)
-	    _TIFFmalloc((tmsize_t)(sizeof (codec_t) + sizeof (TIFFCodec) + strlen(name)+1));
+    size_t namelen = strlen(name);
+    codec_t* cd = (codec_t*)_TIFFmalloc(
+        (tmsize_t)(sizeof(codec_t)+sizeof(TIFFCodec)+namelen+1));
 
-	if (cd != NULL) {
-		cd->info = (TIFFCodec*) ((uint8*) cd + sizeof (codec_t));
-		cd->info->name = (char*)
-		    ((uint8*) cd->info + sizeof (TIFFCodec));
-		strcpy(cd->info->name, name);
-		cd->info->scheme = scheme;
-		cd->info->init = init;
-		cd->next = registeredCODECS;
-		registeredCODECS = cd;
-	} else {
-		TIFFErrorExt(0, "TIFFRegisterCODEC",
-		    "No space to register compression scheme %s", name);
-		return NULL;
-	}
-	return (cd->info);
+    if (cd != NULL) {
+        cd->info = (TIFFCodec*) ((uint8*)cd+sizeof(codec_t));
+        cd->info->name = (char*)((uint8*)cd->info+sizeof(TIFFCodec));
+        cd->info->init = init;
+        cd->info->scheme = scheme; 
+        cd->next = registeredCODECS;
+        registeredCODECS = cd;
+        if (!strncpy(cd->info->name, namelen, name)) {
+            _TIFFfree(cd); return NULL;
+        }
+    } else {
+        TIFFErrorExt(0, "TIFFRegisterCODEC",
+            "No space to register compression scheme %s", name);
+        return NULL;
+    }
+    return (cd->info);
 }
 
-void
-TIFFUnRegisterCODEC(TIFFCodec* c)
+void TIFFUnRegisterCODEC(TIFFCodec* c)
 {
-	codec_t* cd;
-	codec_t** pcd;
+    codec_t* cd; codec_t** pcd;
 
-	for (pcd = &registeredCODECS; (cd = *pcd); pcd = &cd->next)
-		if (cd->info == c) {
-			*pcd = cd->next;
-			_TIFFfree(cd);
-			return;
-		}
-	TIFFErrorExt(0, "TIFFUnRegisterCODEC",
-	    "Cannot remove compression scheme %s; not registered", c->name);
+    for (pcd = &registeredCODECS; (cd = *pcd); pcd = &cd->next) {
+        if (cd->info == c) {
+            *pcd = cd->next; _TIFFfree(cd); return;
+        }
+    }
+    TIFFErrorExt(0, "TIFFUnRegisterCODEC",
+        "Cannot remove compression scheme %s; not registered", c->name);
 }
 
 /************************************************************************/

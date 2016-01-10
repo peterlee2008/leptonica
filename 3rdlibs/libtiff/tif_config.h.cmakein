@@ -152,8 +152,20 @@
 /* Define to 1 if you have the `strtoul' function. */
 #cmakedefine HAVE_STRTOUL 1
 
+/* Define to 1 fi you have the `strcpy_s' function */
+#cmakedefine HAVE_STRCPY_S 1
+
+/* Define to 1 fi you have the `strncpy_s' function */
+#cmakedefine HAVE_STRNCPY_S 1
+
 /* Define to 1 if you have the `strtoull' function. */
 #cmakedefine HAVE_STRTOULL 1
+
+/* Define to 1 fi you have the `sprintf_s' function */
+#cmakedefine HAVE_SPRINTF_S 1
+
+/* Define to 1 fi you have the `_snprintf_s' function */
+#cmakedefine HAVE__SNPRINTF_S 1
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #cmakedefine HAVE_SYS_STAT_H 1

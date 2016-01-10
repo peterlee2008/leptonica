@@ -57,13 +57,40 @@ extern void *lfind(const void *, const void *, size_t *, size_t,
 		   int (*)(const void *, const void *));
 #endif
 
-#if defined(HAVE__SNPRINTF)
+#if defined(HAVE__SNPRINTF_S)
+#undef snprintf
+#define snprintf(buf, count, fmt, ...) \
+    _snprintf_s(buf, count+1, count, fmt, __VA_ARGS__)
+#elif defined(HAVE_SPRINTF_S)
+#undef snprintf
+#define snprintf(buf, count, fmt, ...) \
+    _sprintf_s(buf, count+1, fmt, __VA_ARGS__)
+#elif defined(HAVE__SNPRINTF)
 #undef snprintf
 #define snprintf _snprintf
 #elif !defined(HAVE_SNPRINTF)
 #undef snprintf
 #define snprintf _TIFF_snprintf_f
 extern int snprintf(char* str, size_t size, const char* format, ...);
+#endif
+
+#if defined(HAVE__STRNCPY_S) || defined(HAVE_STRNCPY_S)
+#undef strncpy
+#define strncpy(buf, count, src) \
+    (strncpy_s(buf, count+1, src, count) == 0 ? buf : NULL)
+#elif defined(HAVE__STRCPY_S) || defined(HAVE_STRCPY_S)
+#undef strncpy
+#define strncpy(buf, count, src) \
+    (strcpy_s(buf, count+1, src) == 0 ? buf : NULL)
+#elif defined(HAVE__STRCPY)
+#undef strncpy
+#define strncpy _strncpy
+#elif !defined(HAVE_STRCPY)
+#error "The compiler you use has been obsolete!"
+#endif
+
+#if !defined(_countof)
+#define _countof(_x_) sizeof(_x_)/sizeof(_x_[0])
 #endif
 
 #include "tiffio.h"
@@ -83,9 +110,15 @@ extern int snprintf(char* str, size_t size, const char* format, ...);
 
 typedef struct client_info {
     struct client_info *next;
-    void *data;
-    char *name;
-} TIFFClientInfoLink;
+    void *data; char *name;
+} TIFFClientInfoLink, *PTIFFClientInfoLink;
+
+typedef union _multi_integer {
+    int16 sint16; uint16 uint16;
+    int32 sint32; uint32 uint32; 
+    int64 sint64; uint64 uint64; 
+    size_t autoint;
+} multi_integer, *pmulti_integer;
 
 /*
  * Typedefs for ``method pointers'' used internally.
@@ -104,112 +137,112 @@ typedef uint32 (*TIFFStripMethod)(TIFF*, uint32);
 typedef void (*TIFFTileMethod)(TIFF*, uint32*, uint32*);
 
 struct tiff {
-	char*                tif_name;         /* name of open file */
-	int                  tif_fd;           /* open file descriptor */
-	int                  tif_mode;         /* open mode (O_*) */
-	uint32               tif_flags;
-	#define TIFF_FILLORDER   0x00003 /* natural bit fill order for machine */
-	#define TIFF_DIRTYHEADER 0x00004 /* header must be written on close */
-	#define TIFF_DIRTYDIRECT 0x00008 /* current directory must be written */
-	#define TIFF_BUFFERSETUP 0x00010 /* data buffers setup */
-	#define TIFF_CODERSETUP  0x00020 /* encoder/decoder setup done */
-	#define TIFF_BEENWRITING 0x00040 /* written 1+ scanlines to file */
-	#define TIFF_SWAB        0x00080 /* byte swap file information */
-	#define TIFF_NOBITREV    0x00100 /* inhibit bit reversal logic */
-	#define TIFF_MYBUFFER    0x00200 /* my raw data buffer; free on close */
-	#define TIFF_ISTILED     0x00400 /* file is tile, not strip- based */
-	#define TIFF_MAPPED      0x00800 /* file is mapped into memory */
-	#define TIFF_POSTENCODE  0x01000 /* need call to postencode routine */
-	#define TIFF_INSUBIFD    0x02000 /* currently writing a subifd */
-	#define TIFF_UPSAMPLED   0x04000 /* library is doing data up-sampling */
-	#define TIFF_STRIPCHOP   0x08000 /* enable strip chopping support */
-	#define TIFF_HEADERONLY  0x10000 /* read header only, do not process the first directory */
-	#define TIFF_NOREADRAW   0x20000 /* skip reading of raw uncompressed image data */
-	#define TIFF_INCUSTOMIFD 0x40000 /* currently writing a custom IFD */
-	#define TIFF_BIGTIFF     0x80000 /* read/write bigtiff */
-        #define TIFF_BUF4WRITE  0x100000 /* rawcc bytes are for writing */
-        #define TIFF_DIRTYSTRIP 0x200000 /* stripoffsets/stripbytecount dirty*/
-        #define TIFF_PERSAMPLE  0x400000 /* get/set per sample tags as arrays */
-        #define TIFF_BUFFERMMAP 0x800000 /* read buffer (tif_rawdata) points into mmap() memory */
-	uint64               tif_diroff;       /* file offset of current directory */
-	uint64               tif_nextdiroff;   /* file offset of following directory */
-	uint64*              tif_dirlist;      /* list of offsets to already seen directories to prevent IFD looping */
-	uint16               tif_dirlistsize;  /* number of entires in offset list */
-	uint16               tif_dirnumber;    /* number of already seen directories */
-	TIFFDirectory        tif_dir;          /* internal rep of current directory */
-	TIFFDirectory        tif_customdir;    /* custom IFDs are separated from the main ones */
-	union {
-		TIFFHeaderCommon common;
-		TIFFHeaderClassic classic;
-		TIFFHeaderBig big;
-	} tif_header;
-	uint16               tif_header_size;  /* file's header block and its length */
-	uint32               tif_row;          /* current scanline */
-	uint16               tif_curdir;       /* current directory (index) */
-	uint32               tif_curstrip;     /* current strip for read/write */
-	uint64               tif_curoff;       /* current offset for read/write */
-	uint64               tif_dataoff;      /* current offset for writing dir */
-	/* SubIFD support */
-	uint16               tif_nsubifd;      /* remaining subifds to write */
-	uint64               tif_subifdoff;    /* offset for patching SubIFD link */
-	/* tiling support */
-	uint32               tif_col;          /* current column (offset by row too) */
-	uint32               tif_curtile;      /* current tile for read/write */
-	tmsize_t             tif_tilesize;     /* # of bytes in a tile */
-	/* compression scheme hooks */
-	int                  tif_decodestatus;
-	TIFFBoolMethod       tif_fixuptags;    /* called in TIFFReadDirectory */
-	TIFFBoolMethod       tif_setupdecode;  /* called once before predecode */
-	TIFFPreMethod        tif_predecode;    /* pre- row/strip/tile decoding */
-	TIFFBoolMethod       tif_setupencode;  /* called once before preencode */
-	int                  tif_encodestatus;
-	TIFFPreMethod        tif_preencode;    /* pre- row/strip/tile encoding */
-	TIFFBoolMethod       tif_postencode;   /* post- row/strip/tile encoding */
-	TIFFCodeMethod       tif_decoderow;    /* scanline decoding routine */
-	TIFFCodeMethod       tif_encoderow;    /* scanline encoding routine */
-	TIFFCodeMethod       tif_decodestrip;  /* strip decoding routine */
-	TIFFCodeMethod       tif_encodestrip;  /* strip encoding routine */
-	TIFFCodeMethod       tif_decodetile;   /* tile decoding routine */
-	TIFFCodeMethod       tif_encodetile;   /* tile encoding routine */
-	TIFFVoidMethod       tif_close;        /* cleanup-on-close routine */
-	TIFFSeekMethod       tif_seek;         /* position within a strip routine */
-	TIFFVoidMethod       tif_cleanup;      /* cleanup state routine */
-	TIFFStripMethod      tif_defstripsize; /* calculate/constrain strip size */
-	TIFFTileMethod       tif_deftilesize;  /* calculate/constrain tile size */
-	uint8*               tif_data;         /* compression scheme private data */
-	/* input/output buffering */
-	tmsize_t             tif_scanlinesize; /* # of bytes in a scanline */
-	tmsize_t             tif_scanlineskew; /* scanline skew for reading strips */
-	uint8*               tif_rawdata;      /* raw data buffer */
-	tmsize_t             tif_rawdatasize;  /* # of bytes in raw data buffer */
-        tmsize_t             tif_rawdataoff;   /* rawdata offset within strip */
-        tmsize_t             tif_rawdataloaded;/* amount of data in rawdata */
-	uint8*               tif_rawcp;        /* current spot in raw buffer */
-	tmsize_t             tif_rawcc;        /* bytes unread from raw buffer */
-	/* memory-mapped file support */
-	uint8*               tif_base;         /* base of mapped file */
-	tmsize_t             tif_size;         /* size of mapped file region (bytes, thus tmsize_t) */
-	TIFFMapFileProc      tif_mapproc;      /* map file method */
-	TIFFUnmapFileProc    tif_unmapproc;    /* unmap file method */
-	/* input/output callback methods */
-	thandle_t            tif_clientdata;   /* callback parameter */
-	TIFFReadWriteProc    tif_readproc;     /* read method */
-	TIFFReadWriteProc    tif_writeproc;    /* write method */
-	TIFFSeekProc         tif_seekproc;     /* lseek method */
-	TIFFCloseProc        tif_closeproc;    /* close method */
-	TIFFSizeProc         tif_sizeproc;     /* filesize method */
-	/* post-decoding support */
-	TIFFPostMethod       tif_postdecode;   /* post decoding routine */
-	/* tag support */
-	TIFFField**          tif_fields;       /* sorted table of registered tags */
-	size_t               tif_nfields;      /* # entries in registered tag table */
-	const TIFFField*     tif_foundfield;   /* cached pointer to already found tag */
-	TIFFTagMethods       tif_tagmethods;   /* tag get/set/print routines */
-	TIFFClientInfoLink*  tif_clientinfo;   /* extra client information. */
-	/* Backward compatibility stuff. We need these two fields for
-	 * setting up an old tag extension scheme. */
-	TIFFFieldArray*      tif_fieldscompat;
-	size_t               tif_nfieldscompat;
+    char*                tif_name;         /* name of open file */
+    int                  tif_fd;           /* open file descriptor */
+    int                  tif_mode;         /* open mode (O_*) */
+    uint32               tif_flags;
+    #define TIFF_FILLORDER   0x00003 /* natural bit fill order for machine */
+    #define TIFF_DIRTYHEADER 0x00004 /* header must be written on close */
+    #define TIFF_DIRTYDIRECT 0x00008 /* current directory must be written */
+    #define TIFF_BUFFERSETUP 0x00010 /* data buffers setup */
+    #define TIFF_CODERSETUP  0x00020 /* encoder/decoder setup done */
+    #define TIFF_BEENWRITING 0x00040 /* written 1+ scanlines to file */
+    #define TIFF_SWAB        0x00080 /* byte swap file information */
+    #define TIFF_NOBITREV    0x00100 /* inhibit bit reversal logic */
+    #define TIFF_MYBUFFER    0x00200 /* my raw data buffer; free on close */
+    #define TIFF_ISTILED     0x00400 /* file is tile, not strip- based */
+    #define TIFF_MAPPED      0x00800 /* file is mapped into memory */
+    #define TIFF_POSTENCODE  0x01000 /* need call to postencode routine */
+    #define TIFF_INSUBIFD    0x02000 /* currently writing a subifd */
+    #define TIFF_UPSAMPLED   0x04000 /* library is doing data up-sampling */
+    #define TIFF_STRIPCHOP   0x08000 /* enable strip chopping support */
+    #define TIFF_HEADERONLY  0x10000 /* read header only, do not process the first directory */
+    #define TIFF_NOREADRAW   0x20000 /* skip reading of raw uncompressed image data */
+    #define TIFF_INCUSTOMIFD 0x40000 /* currently writing a custom IFD */
+    #define TIFF_BIGTIFF     0x80000 /* read/write bigtiff */
+    #define TIFF_BUF4WRITE  0x100000 /* rawcc bytes are for writing */
+    #define TIFF_DIRTYSTRIP 0x200000 /* stripoffsets/stripbytecount dirty*/
+    #define TIFF_PERSAMPLE  0x400000 /* get/set per sample tags as arrays */
+    #define TIFF_BUFFERMMAP 0x800000 /* read buffer (tif_rawdata) points into mmap() memory */
+    uint64               tif_diroff;       /* file offset of current directory */
+    uint64               tif_nextdiroff;   /* file offset of following directory */
+    uint64*              tif_dirlist;      /* list of offsets to already seen directories to prevent IFD looping */
+    uint16               tif_dirlistsize;  /* number of entires in offset list */
+    uint16               tif_dirnumber;    /* number of already seen directories */
+    TIFFDirectory        tif_dir;          /* internal rep of current directory */
+    TIFFDirectory        tif_customdir;    /* custom IFDs are separated from the main ones */
+    union {
+        TIFFHeaderCommon common;
+        TIFFHeaderClassic classic;
+        TIFFHeaderBig big;
+    } tif_header;
+    uint16               tif_header_size;  /* file's header block and its length */
+    uint32               tif_row;          /* current scanline */
+    uint16               tif_curdir;       /* current directory (index) */
+    uint32               tif_curstrip;     /* current strip for read/write */
+    uint64               tif_curoff;       /* current offset for read/write */
+    uint64               tif_dataoff;      /* current offset for writing dir */
+    /* SubIFD support */
+    uint16               tif_nsubifd;      /* remaining subifds to write */
+    uint64               tif_subifdoff;    /* offset for patching SubIFD link */
+    /* tiling support */
+    uint32               tif_col;          /* current column (offset by row too) */
+    uint32               tif_curtile;      /* current tile for read/write */
+    tmsize_t             tif_tilesize;     /* # of bytes in a tile */
+    /* compression scheme hooks */
+    int                  tif_decodestatus;
+    TIFFBoolMethod       tif_fixuptags;    /* called in TIFFReadDirectory */
+    TIFFBoolMethod       tif_setupdecode;  /* called once before predecode */
+    TIFFPreMethod        tif_predecode;    /* pre- row/strip/tile decoding */
+    TIFFBoolMethod       tif_setupencode;  /* called once before preencode */
+    int                  tif_encodestatus;
+    TIFFPreMethod        tif_preencode;    /* pre- row/strip/tile encoding */
+    TIFFBoolMethod       tif_postencode;   /* post- row/strip/tile encoding */
+    TIFFCodeMethod       tif_decoderow;    /* scanline decoding routine */
+    TIFFCodeMethod       tif_encoderow;    /* scanline encoding routine */
+    TIFFCodeMethod       tif_decodestrip;  /* strip decoding routine */
+    TIFFCodeMethod       tif_encodestrip;  /* strip encoding routine */
+    TIFFCodeMethod       tif_decodetile;   /* tile decoding routine */
+    TIFFCodeMethod       tif_encodetile;   /* tile encoding routine */
+    TIFFVoidMethod       tif_close;        /* cleanup-on-close routine */
+    TIFFSeekMethod       tif_seek;         /* position within a strip routine */
+    TIFFVoidMethod       tif_cleanup;      /* cleanup state routine */
+    TIFFStripMethod      tif_defstripsize; /* calculate/constrain strip size */
+    TIFFTileMethod       tif_deftilesize;  /* calculate/constrain tile size */
+    uint8*               tif_data;         /* compression scheme private data */
+    /* input/output buffering */
+    tmsize_t             tif_scanlinesize; /* # of bytes in a scanline */
+    tmsize_t             tif_scanlineskew; /* scanline skew for reading strips */
+    uint8*               tif_rawdata;      /* raw data buffer */
+    tmsize_t             tif_rawdatasize;  /* # of bytes in raw data buffer */
+    tmsize_t             tif_rawdataoff;   /* rawdata offset within strip */
+    tmsize_t             tif_rawdataloaded;/* amount of data in rawdata */
+    uint8*               tif_rawcp;        /* current spot in raw buffer */
+    tmsize_t             tif_rawcc;        /* bytes unread from raw buffer */
+    /* memory-mapped file support */
+    uint8*               tif_base;         /* base of mapped file */
+    tmsize_t             tif_size;         /* size of mapped file region (bytes, thus tmsize_t) */
+    TIFFMapFileProc      tif_mapproc;      /* map file method */
+    TIFFUnmapFileProc    tif_unmapproc;    /* unmap file method */
+    /* input/output callback methods */
+    thandle_t            tif_clientdata;   /* callback parameter */
+    TIFFReadWriteProc    tif_readproc;     /* read method */
+    TIFFReadWriteProc    tif_writeproc;    /* write method */
+    TIFFSeekProc         tif_seekproc;     /* lseek method */
+    TIFFCloseProc        tif_closeproc;    /* close method */
+    TIFFSizeProc         tif_sizeproc;     /* filesize method */
+    /* post-decoding support */
+    TIFFPostMethod       tif_postdecode;   /* post decoding routine */
+    /* tag support */
+    TIFFField**          tif_fields;       /* sorted table of registered tags */
+    size_t               tif_nfields;      /* # entries in registered tag table */
+    const TIFFField*     tif_foundfield;   /* cached pointer to already found tag */
+    TIFFTagMethods       tif_tagmethods;   /* tag get/set/print routines */
+    TIFFClientInfoLink*  tif_clientinfo;   /* extra client information. */
+    /* Backward compatibility stuff. We need these two fields for
+    * setting up an old tag extension scheme. */
+    TIFFFieldArray*      tif_fieldscompat;
+    size_t               tif_nfieldscompat;
 };
 
 #define isPseudoTag(t) (t > 0xffff)            /* is tag value normal or pseudo */

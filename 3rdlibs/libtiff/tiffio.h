@@ -64,18 +64,18 @@ typedef struct tiff TIFF;
  * this is the machine addressing size type, only it's signed, so make it
  * int32 on 32bit machines, int64 on 64bit machines
  */
-typedef TIFF_SSIZE_T tmsize_t;
-typedef uint64 toff_t;          /* file offset */
+typedef TIFF_SSIZE_T    tmsize_t;
+typedef uint64          toff_t;     /* file offset */
 /* the following are deprecated and should be replaced by their defining
    counterparts */
-typedef uint32 ttag_t;          /* directory tag */
-typedef uint16 tdir_t;          /* directory index */
-typedef uint16 tsample_t;       /* sample number */
-typedef uint32 tstrile_t;       /* strip or tile number */
-typedef tstrile_t tstrip_t;     /* strip number */
-typedef tstrile_t ttile_t;      /* tile number */
-typedef tmsize_t tsize_t;       /* i/o size in bytes */
-typedef void* tdata_t;          /* image data ref */
+typedef uint32          ttag_t;     /* directory tag */
+typedef uint16          tdir_t;     /* directory index */
+typedef uint16          tsample_t;  /* sample number */
+typedef uint32          tstrile_t;  /* strip or tile number */
+typedef tstrile_t       tstrip_t;   /* strip number */
+typedef tstrile_t       ttile_t;    /* tile number */
+typedef tmsize_t        tsize_t;    /* i/o size in bytes */
+typedef void*           tdata_t;    /* image data ref */
 
 #if !defined(__WIN32__) && (defined(_WIN32) || defined(WIN32))
 #define __WIN32__

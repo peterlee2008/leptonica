@@ -81,38 +81,38 @@ const TIFFCodec _TIFFBuiltinCODECS[] = {
 #else
 TIFFCodec _TIFFBuiltinCODECS[] = {
 #endif
-    { "None",		COMPRESSION_NONE,	TIFFInitDumpMode },
-    { "LZW",		COMPRESSION_LZW,	TIFFInitLZW },
-    { "PackBits",	COMPRESSION_PACKBITS,	TIFFInitPackBits },
-    { "ThunderScan",	COMPRESSION_THUNDERSCAN,TIFFInitThunderScan },
-    { "NeXT",		COMPRESSION_NEXT,	TIFFInitNeXT },
-    { "JPEG",		COMPRESSION_JPEG,	TIFFInitJPEG },
-    { "Old-style JPEG",	COMPRESSION_OJPEG,	TIFFInitOJPEG },
-    { "CCITT RLE",	COMPRESSION_CCITTRLE,	TIFFInitCCITTRLE },
-    { "CCITT RLE/W",	COMPRESSION_CCITTRLEW,	TIFFInitCCITTRLEW },
-    { "CCITT Group 3",	COMPRESSION_CCITTFAX3,	TIFFInitCCITTFax3 },
-    { "CCITT Group 4",	COMPRESSION_CCITTFAX4,	TIFFInitCCITTFax4 },
-    { "ISO JBIG",	COMPRESSION_JBIG,	TIFFInitJBIG },
-    { "Deflate",	COMPRESSION_DEFLATE,	TIFFInitZIP },
-    { "AdobeDeflate",   COMPRESSION_ADOBE_DEFLATE , TIFFInitZIP }, 
-    { "PixarLog",	COMPRESSION_PIXARLOG,	TIFFInitPixarLog },
-    { "SGILog",		COMPRESSION_SGILOG,	TIFFInitSGILog },
-    { "SGILog24",	COMPRESSION_SGILOG24,	TIFFInitSGILog },
-    { "LZMA",		COMPRESSION_LZMA,	TIFFInitLZMA },
-    { NULL,             0,                      NULL }
+    { "None",           COMPRESSION_NONE,           TIFFInitDumpMode    },
+    { "LZW",            COMPRESSION_LZW,            TIFFInitLZW         },
+    { "PackBits",       COMPRESSION_PACKBITS,       TIFFInitPackBits    },
+    { "ThunderScan",    COMPRESSION_THUNDERSCAN,    TIFFInitThunderScan },
+    { "NeXT",           COMPRESSION_NEXT,           TIFFInitNeXT        },
+    { "JPEG",           COMPRESSION_JPEG,           TIFFInitJPEG        },
+    { "Old-style JPEG", COMPRESSION_OJPEG,          TIFFInitOJPEG       },
+    { "CCITT RLE",      COMPRESSION_CCITTRLE,       TIFFInitCCITTRLE    },
+    { "CCITT RLE/W",    COMPRESSION_CCITTRLEW,      TIFFInitCCITTRLEW   },
+    { "CCITT Group 3",  COMPRESSION_CCITTFAX3,      TIFFInitCCITTFax3   },
+    { "CCITT Group 4",  COMPRESSION_CCITTFAX4,      TIFFInitCCITTFax4   },
+    { "ISO JBIG",       COMPRESSION_JBIG,           TIFFInitJBIG        },
+    { "Deflate",        COMPRESSION_DEFLATE,        TIFFInitZIP         },
+    { "AdobeDeflate",   COMPRESSION_ADOBE_DEFLATE , TIFFInitZIP         }, 
+    { "PixarLog",       COMPRESSION_PIXARLOG,       TIFFInitPixarLog    },
+    { "SGILog",         COMPRESSION_SGILOG,         TIFFInitSGILog      },
+    { "SGILog24",       COMPRESSION_SGILOG24,       TIFFInitSGILog      },
+    { "LZMA",           COMPRESSION_LZMA,           TIFFInitLZMA        },
+    { NULL,             0,                          NULL                }
 };
 
 static int
 _notConfigured(TIFF* tif)
 {
-	const TIFFCodec* c = TIFFFindCODEC(tif->tif_dir.td_compression);
-        char compression_code[20];
-        
-        sprintf(compression_code, "%d",tif->tif_dir.td_compression );
-	TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
-                     "%s compression support is not configured", 
-                     c ? c->name : compression_code );
-	return (0);
+    char compression_code[20];
+    const TIFFCodec* c = TIFFFindCODEC(tif->tif_dir.td_compression);
+    snprintf(compression_code, 
+        sizeof(compression_code), "%d", tif->tif_dir.td_compression);
+    TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
+                 "%s compression support is not configured", 
+                 c ? c->name : compression_code );
+    return (0);
 }
 
 static int

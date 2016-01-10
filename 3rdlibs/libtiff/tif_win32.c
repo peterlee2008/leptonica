@@ -67,83 +67,82 @@ typedef union _file_client {
 static tmsize_t
 _tiffReadProc(thandle_t fd, void* buf, tmsize_t size)
 {
-	/* 
-	 * tmsize_t is 64bit on 64bit systems, but the WinAPI 
-	 * ReadFile takes 32bit sizes, so we loop through the 
-	 * data in suitable 32bit sized chunks 
-	 */
-	uint8* ma; uint64 mb; DWORD n; DWORD o; tmsize_t p;
-	ma=(uint8*)buf; mb=size; p=0;
-	while (mb>0)
-	{
-		n=0x80000000UL;
-		if ((uint64)n>mb) n=(DWORD)mb;
-		if (!ReadFile(fd,(LPVOID)ma,n,&o,NULL)) return(0);
-		ma+=o; mb-=o; p+=o;
-		if (o!=n) break;
-	}
-	return(p);
+    /* 
+     * tmsize_t is 64bit on 64bit systems, but the WinAPI 
+     * ReadFile takes 32bit sizes, so we loop through the 
+     * data in suitable 32bit sized chunks 
+     */
+    uint8* ma; uint64 mb; DWORD n; DWORD o; tmsize_t p;
+    ma=(uint8*)buf; mb=size; p=0;
+    while (mb>0)
+    {
+        n=0x80000000UL;
+        if ((uint64)n>mb) n=(DWORD)mb;
+        if (!ReadFile(fd,(LPVOID)ma,n,&o,NULL)) return(0);
+        ma+=o; mb-=o; p+=o;
+        if (o!=n) break;
+    }
+    return(p);
 }
 
 static tmsize_t
 _tiffWriteProc(thandle_t fd, void* buf, tmsize_t size)
 {
-	/* 
-	 * tmsize_t is 64bit on 64bit systems, but the WinAPI 
-	 * WriteFile takes 32bit sizes, so we loop through the 
-	 * data in suitable 32bit sized chunks 
-	 */
-	uint8* ma; uint64 mb; DWORD n; DWORD o; tmsize_t p;
-	ma=(uint8*)buf; mb=size; p=0;
-	while (mb>0)
-	{
-		n=0x80000000UL;
-		if ((uint64)n>mb) n=(DWORD)mb;
-		if (!WriteFile(fd,(LPVOID)ma,n,&o,NULL)) return(0);
-		ma+=o; mb-=o; p+=o;
-		if (o!=n) break;
-	}
-	return(p);
+    /* 
+     * tmsize_t is 64bit on 64bit systems, but the WinAPI 
+     * WriteFile takes 32bit sizes, so we loop through the 
+     * data in suitable 32bit sized chunks 
+     */
+    uint8* ma; uint64 mb; DWORD n; DWORD o; tmsize_t p;
+    ma=(uint8*)buf; mb=size; p=0;
+    while (mb>0)
+    {
+        n=0x80000000UL;
+        if ((uint64)n>mb) n=(DWORD)mb;
+        if (!WriteFile(fd,(LPVOID)ma,n,&o,NULL)) return(0);
+        ma+=o; mb-=o; p+=o;
+        if (o!=n) break;
+    }
+    return(p);
 }
 
 static uint64
 _tiffSeekProc(thandle_t fd, uint64 off, int whence)
 {
-	LARGE_INTEGER offli; DWORD dwMoveMethod;
-	offli.QuadPart = off;
-	switch(whence)
-	{
-		case SEEK_SET:	dwMoveMethod = FILE_BEGIN;	break;
-		case SEEK_CUR:	dwMoveMethod = FILE_CURRENT;break;
-		case SEEK_END:	dwMoveMethod = FILE_END;	break;
-		default:		dwMoveMethod = FILE_BEGIN;	break;
-	}
-	offli.LowPart = SetFilePointer(
-		fd, offli.LowPart, &offli.HighPart, dwMoveMethod
-	);
-	if(offli.LowPart == INVALID_SET_FILE_POINTER)
-		if(GetLastError() != NO_ERROR) offli.QuadPart = 0;
-	return(offli.QuadPart);
+    LARGE_INTEGER offli; DWORD dwMoveMethod;
+    offli.QuadPart = off;
+    switch(whence) {
+        case SEEK_SET:	dwMoveMethod = FILE_BEGIN;	break;
+        case SEEK_CUR:	dwMoveMethod = FILE_CURRENT;break;
+        case SEEK_END:	dwMoveMethod = FILE_END;	break;
+        default:		dwMoveMethod = FILE_BEGIN;	break;
+    }
+    offli.LowPart = SetFilePointer(
+        fd, offli.LowPart, &offli.HighPart, dwMoveMethod
+    );
+    if(offli.LowPart == INVALID_SET_FILE_POINTER)
+        if(GetLastError() != NO_ERROR) offli.QuadPart = 0;
+    return(offli.QuadPart);
 }
 
 static int
 _tiffCloseProc(thandle_t fd)
 {
-	return (CloseHandle(fd) ? 0 : -1);
+    return (CloseHandle(fd) ? 0 : -1);
 }
 
 static uint64
 _tiffSizeProc(thandle_t fd)
 {
-	ULARGE_INTEGER m;
-	m.LowPart=GetFileSize(fd,&m.HighPart);
-	return(m.QuadPart);
+    ULARGE_INTEGER m;
+    m.LowPart=GetFileSize(fd,&m.HighPart);
+    return(m.QuadPart);
 }
 
 static int
 _tiffDummyMapProc(thandle_t fd, void** pbase, toff_t* psize)
 {
-	(void) fd; (void) pbase; (void) psize; return (0);
+    (void) fd; (void) pbase; (void) psize; return (0);
 }
 
 /*
@@ -160,34 +159,34 @@ _tiffDummyMapProc(thandle_t fd, void** pbase, toff_t* psize)
 static int
 _tiffMapProc(thandle_t fd, void** pbase, toff_t* psize)
 {
-	uint64 size; tmsize_t sizem; HANDLE hMapFile;
+    uint64 size; tmsize_t sizem; HANDLE hMapFile;
 
-	size = _tiffSizeProc(fd); sizem = (tmsize_t)size;
-	if((uint64)sizem != size) return (0);
+    size = _tiffSizeProc(fd); sizem = (tmsize_t)size;
+    if((uint64)sizem != size) return (0);
 
-	/* 
-	 * By passing in 0 for the maximum file size, it specifies 
-	 * that we create a file mapping object for the full file 
-	 * size. 
-	 */
-	hMapFile = CreateFileMapping(fd,NULL,PAGE_READONLY,0,0,NULL);
-	if (hMapFile == NULL) return (0);
-	*pbase = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
-	CloseHandle(hMapFile);
-	if (*pbase == NULL) return (0);
-	*psize = size; return(1);
+    /* 
+     * By passing in 0 for the maximum file size, it specifies 
+     * that we create a file mapping object for the full file 
+     * size. 
+     */
+    hMapFile = CreateFileMapping(fd,NULL,PAGE_READONLY,0,0,NULL);
+    if (hMapFile == NULL) return (0);
+    *pbase = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
+    CloseHandle(hMapFile);
+    if (*pbase == NULL) return (0);
+    *psize = size; return(1);
 }
 
 static void
 _tiffDummyUnmapProc(thandle_t fd, void* base, toff_t size)
 {
-	(void) fd; (void) base; (void) size;
+    (void) fd; (void) base; (void) size;
 }
 
 static void
 _tiffUnmapProc(thandle_t fd, void* base, toff_t size)
 {
-	(void) fd; (void) size; UnmapViewOfFile(base);
+    (void) fd; (void) size; UnmapViewOfFile(base);
 }
 
 /*
@@ -198,33 +197,33 @@ _tiffUnmapProc(thandle_t fd, void* base, toff_t size)
  */
 TIFF* TIFFFdOpen(int ifd, const char* name, const char* mode)
 {
-	int m; TIFF* tif; thandle_t hfd; int fSuppressMap = 0;
-	for (m=0; mode[m]!=0; m++) {
-		if (mode[m]=='u') { fSuppressMap=1; break; }
-	}
-	/* FIXED: WIN64 cast to pointer warning */
-	hfd = (thandle_t)_get_osfhandle( ifd );
-	tif = TIFFClientOpen( name, mode, hfd, 
-			 _tiffReadProc, _tiffWriteProc,
-			 _tiffSeekProc, _tiffCloseProc, _tiffSizeProc,
-			 fSuppressMap ? _tiffDummyMapProc : _tiffMapProc,
-			 fSuppressMap ? _tiffDummyUnmapProc : _tiffUnmapProc);
-	if (tif) tif->tif_fd = ifd;
-	return (tif);
+    int m; TIFF* tif; thandle_t hfd; int fSuppressMap = 0;
+    for (m=0; mode[m]!=0; m++) {
+        if (mode[m]=='u') { fSuppressMap=1; break; }
+    }
+    /* FIXED: WIN64 cast to pointer warning */
+    hfd = (thandle_t)_get_osfhandle( ifd );
+    tif = TIFFClientOpen( name, mode, hfd, 
+             _tiffReadProc, _tiffWriteProc,
+             _tiffSeekProc, _tiffCloseProc, _tiffSizeProc,
+             fSuppressMap ? _tiffDummyMapProc : _tiffMapProc,
+             fSuppressMap ? _tiffDummyUnmapProc : _tiffUnmapProc);
+    if (tif) tif->tif_fd = ifd;
+    return (tif);
 }
 TIFF* TIFFHdOpen(thandle_t hfd, const char* name, const char* mode)
 {
-	int m; TIFF* tif; int fSuppressMap = 0;
-	for (m=0; mode[m]!=0; m++) {
-		if (mode[m]=='u') { fSuppressMap=1; break; }
-	}
-	/* Here, We don't need the file descriptor, return directly */
-	tif = TIFFClientOpen(name, mode, hfd, 
-			 _tiffReadProc, _tiffWriteProc,
-			 _tiffSeekProc, _tiffCloseProc, _tiffSizeProc,
-			 fSuppressMap ? _tiffDummyMapProc : _tiffMapProc,
-			 fSuppressMap ? _tiffDummyUnmapProc : _tiffUnmapProc);
-	return (tif);
+    int m; TIFF* tif; int fSuppressMap = 0;
+    for (m=0; mode[m]!=0; m++) {
+        if (mode[m]=='u') { fSuppressMap=1; break; }
+    }
+    /* Here, We don't need the file descriptor, return directly */
+    tif = TIFFClientOpen(name, mode, hfd, 
+             _tiffReadProc, _tiffWriteProc,
+             _tiffSeekProc, _tiffCloseProc, _tiffSizeProc,
+             fSuppressMap ? _tiffDummyMapProc : _tiffMapProc,
+             fSuppressMap ? _tiffDummyUnmapProc : _tiffUnmapProc);
+    return (tif);
 }
 
 #ifndef _WIN32_WCE
@@ -234,57 +233,57 @@ TIFF* TIFFHdOpen(thandle_t hfd, const char* name, const char* mode)
  */
 TIFF* TIFFOpen(const char* name, const char* mode)
 {
-	static const char module[] = "TIFFOpen";
-	thandle_t hd; int m, fd; DWORD dwMode; TIFF* tif;
+    static const char module[] = "TIFFOpen";
+    thandle_t hd; int m, fd = 0; DWORD dwMode; TIFF* tif;
 
-	m = _TIFFgetMode(mode, module);
+    m = _TIFFgetMode(mode, module);
 
-	switch(m) {
-		case O_RDONLY:				dwMode = OPEN_EXISTING; break;
-		case O_RDWR:				dwMode = OPEN_ALWAYS;   break;
-		case O_RDWR|O_CREAT:		dwMode = OPEN_ALWAYS;   break;
-		case O_RDWR|O_TRUNC:		dwMode = CREATE_ALWAYS; break;
-		case O_RDWR|O_CREAT|O_TRUNC:dwMode = CREATE_ALWAYS; break;
-		default:					return ((TIFF*)0);
-	}
+    switch(m) {
+        case O_RDONLY:				dwMode = OPEN_EXISTING; break;
+        case O_RDWR:				dwMode = OPEN_ALWAYS;   break;
+        case O_RDWR|O_CREAT:		dwMode = OPEN_ALWAYS;   break;
+        case O_RDWR|O_TRUNC:		dwMode = CREATE_ALWAYS; break;
+        case O_RDWR|O_CREAT|O_TRUNC:dwMode = CREATE_ALWAYS; break;
+        default:					return ((TIFF*)0);
+    }
 
-	hd = (thandle_t)CreateFileA(name,
-		(m==O_RDONLY) ? GENERIC_READ : (GENERIC_READ|GENERIC_WRITE),
-		FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, dwMode,
-		(m==O_RDONLY) ? FILE_ATTRIBUTE_READONLY : FILE_ATTRIBUTE_NORMAL,
-		NULL
-	);
-	if (hd == INVALID_HANDLE_VALUE) {
-		TIFFErrorExt(0, module, "%s: Cannot open", name);
-		return ((TIFF *)0);
-	}
-	
-	/* FIXED: WIN64 cast from pointer to int warning 
-	 * 'FIXED' here actually case a security issue, when you close 
-	 * the tiff file, it will call _tiffCloseProc to close the file 
-	 * handle, inside, it uses CloseHandle. 
-	 * But here we use _open_osfhandle to create a file descriptor, 
-	 * this function has its management mechanism, you must call
-	 * _close to close the file descriptor. So if you close the file
-	 * by calling CloseHandle (but not by calling _close), The memory 
-	 * leak would occur
-	*/
-	// fd = _open_osfhandle(hd, m);
-	// if(fd != -1) tif = TIFFFdOpen(hd, name, mode);
-	// if(!tif) _close(hd);
-	// return tif;
+    hd = (thandle_t)CreateFileA(name,
+        (m==O_RDONLY) ? GENERIC_READ : (GENERIC_READ|GENERIC_WRITE),
+        FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, dwMode,
+        (m==O_RDONLY) ? FILE_ATTRIBUTE_READONLY : FILE_ATTRIBUTE_NORMAL,
+        NULL
+    );
+    if (hd == INVALID_HANDLE_VALUE) {
+        TIFFErrorExt(0, module, "%s: Cannot open", name);
+        return ((TIFF *)0);
+    }
 
-	/* 
-	 * FIXED: WIN64 cast from pointer to int warning 
-	 * Here, We use the new function 'TIFFHdOpen' instead. As I know 
-	 * about the tiff library, file descriptor is useless, so we can
-	 * simply ignore it. ('TIFFHdOpen' will do so)
-	 * But you should know that 'TIFFFileno' and 'TIFFSetFileno' can
-	 * not be used in the tiff library.
-	 */
-	tif = TIFFHdOpen(hd, name, mode);
-	if(!tif) CloseHandle(hd);
-	return tif;
+    /* FIXED: WIN64 cast from pointer to int warning 
+     * 'FIXED' here actually case a security issue, when you close 
+     * the tiff file, it will call _tiffCloseProc to close the file 
+     * handle, inside, it uses CloseHandle. 
+     * But here we use _open_osfhandle to create a file descriptor, 
+     * this function has its management mechanism, you must call
+     * _close to close the file descriptor. So if you close the file
+     * by calling CloseHandle (but not by calling _close), The memory 
+     * leak would occur
+    */
+    // fd = _open_osfhandle(hd, m);
+    // if(fd != -1) tif = TIFFFdOpen(hd, name, mode);
+    // if(!tif) _close(hd);
+    // return tif;
+
+    /* 
+     * FIXED: WIN64 cast from pointer to int warning 
+     * Here, We use the new function 'TIFFHdOpen' instead. As I know 
+     * about the tiff library, file descriptor is useless, so we can
+     * simply ignore it. ('TIFFHdOpen' will do so)
+     * But you should know that 'TIFFFileno' and 'TIFFSetFileno' can
+     * not be used in the tiff library.
+     */
+    tif = TIFFHdOpen(hd, name, mode);
+    if(!tif) CloseHandle(hd);
+    return tif;
 }
 
 
@@ -293,49 +292,49 @@ TIFF* TIFFOpen(const char* name, const char* mode)
  */
 TIFF* TIFFOpenW(const wchar_t* name, const char* mode)
 {
-	static const char module[] = "TIFFOpenW";
-	thandle_t fd; 
-	char *mbname = NULL; TIFF *tif;
-	int m; DWORD dwMode; int mbsize; 
+    static const char module[] = "TIFFOpenW";
+    thandle_t fd; 
+    char *mbname = NULL; TIFF *tif;
+    int m; DWORD dwMode; int mbsize; 
 
-	m = _TIFFgetMode(mode, module);
+    m = _TIFFgetMode(mode, module);
 
-	switch(m) {
-		case O_RDONLY:				dwMode = OPEN_EXISTING; break;
-		case O_RDWR:				dwMode = OPEN_ALWAYS;   break;
-		case O_RDWR|O_CREAT:		dwMode = OPEN_ALWAYS;   break;
-		case O_RDWR|O_TRUNC:		dwMode = CREATE_ALWAYS; break;
-		case O_RDWR|O_CREAT|O_TRUNC:dwMode = CREATE_ALWAYS; break;
-		default:					return ((TIFF*)0);
-	}
+    switch(m) {
+        case O_RDONLY:				dwMode = OPEN_EXISTING; break;
+        case O_RDWR:				dwMode = OPEN_ALWAYS;   break;
+        case O_RDWR|O_CREAT:		dwMode = OPEN_ALWAYS;   break;
+        case O_RDWR|O_TRUNC:		dwMode = CREATE_ALWAYS; break;
+        case O_RDWR|O_CREAT|O_TRUNC:dwMode = CREATE_ALWAYS; break;
+        default:					return ((TIFF*)0);
+    }
 
-	fd = (thandle_t)CreateFileW(name,
-		(m==O_RDONLY) ? GENERIC_READ: (GENERIC_READ|GENERIC_WRITE),
-		FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, dwMode,
-		(m==O_RDONLY) ? FILE_ATTRIBUTE_READONLY : FILE_ATTRIBUTE_NORMAL,
-		NULL);
-	if (fd == INVALID_HANDLE_VALUE) {
-		TIFFErrorExt(0, module, "%S: Cannot open", name);
-		return ((TIFF *)0);
-	}
+    fd = (thandle_t)CreateFileW(name,
+        (m==O_RDONLY) ? GENERIC_READ: (GENERIC_READ|GENERIC_WRITE),
+        FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, dwMode,
+        (m==O_RDONLY) ? FILE_ATTRIBUTE_READONLY : FILE_ATTRIBUTE_NORMAL,
+        NULL);
+    if (fd == INVALID_HANDLE_VALUE) {
+        TIFFErrorExt(0, module, "%S: Cannot open", name);
+        return ((TIFF *)0);
+    }
 
-	mbsize = WideCharToMultiByte(
-				 CP_ACP, 0, name, -1, NULL, 0, NULL, NULL);
-	if (mbsize > 0) {
-		mbname = (char *)_TIFFmalloc(mbsize);
-		if(!mbname) {
-			TIFFErrorExt(0, module,
-				"Can't allocate space for filename conversion");
-			return ((TIFF*)0);
-		}
-		WideCharToMultiByte(
-			CP_ACP, 0, name, -1, mbname, mbsize, NULL, NULL);
-	}
+    mbsize = WideCharToMultiByte(
+                 CP_ACP, 0, name, -1, NULL, 0, NULL, NULL);
+    if (mbsize > 0) {
+        mbname = (char *)_TIFFmalloc(mbsize);
+        if(!mbname) {
+            TIFFErrorExt(0, module,
+                "Can't allocate space for filename conversion");
+            return ((TIFF*)0);
+        }
+        WideCharToMultiByte(
+            CP_ACP, 0, name, -1, mbname, mbsize, NULL, NULL);
+    }
 
-	/* FIXED: WIN64 cast from pointer to int warning */
-	tif = TIFFHdOpen(fd, (mbname==NULL) ? "<unknown>" : mbname, mode);
-	if(!tif) CloseHandle(fd);
-	_TIFFfree(mbname); return tif;
+    /* FIXED: WIN64 cast from pointer to int warning */
+    tif = TIFFHdOpen(fd, (mbname==NULL) ? "<unknown>" : mbname, mode);
+    if(!tif) CloseHandle(fd);
+    _TIFFfree(mbname); return tif;
 }
 
 #endif /* ndef _WIN32_WCE */
@@ -373,36 +372,47 @@ int _TIFFmemcmp(const void* p1, const void* p2, tmsize_t c)
 
 #ifndef _WIN32_WCE
 
-#if (_MSC_VER < 1500)
-#  define vsnprintf _vsnprintf
-#endif
-
 static void
 Win32WarningHandler(const char* module, const char* fmt, va_list ap)
 {
 #ifndef TIF_PLATFORM_CONSOLE
-	LPTSTR szTitle;
-	LPTSTR szTmp;
-	LPCTSTR szTitleText = "%s Warning";
-	LPCTSTR szDefaultModule = "LIBTIFF";
-	LPCTSTR szTmpModule = (module == NULL) ? szDefaultModule : module;
-        SIZE_T nBufSize = (strlen(szTmpModule) +
-                        strlen(szTitleText) + strlen(fmt) + 256)*sizeof(char);
+    LPCSTR szTmpModule = NULL;
+    LPCSTR szTitleText = "%s Warning";
+    LPCSTR szDefaultModule = "LIBTIFF";
+    SIZE_T nBufSize = 0; int txtlen = 0; 
+    LPSTR szText = NULL; LPSTR szTitle = NULL;
 
-	if ((szTitle = (LPTSTR)LocalAlloc(LMEM_FIXED, nBufSize)) == NULL)
-		return;
-	sprintf(szTitle, szTitleText, szTmpModule);
-	szTmp = szTitle + (strlen(szTitle)+2)*sizeof(char);
-	vsnprintf(szTmp, nBufSize-(strlen(szTitle)+2)*sizeof(char), fmt, ap);
-	MessageBoxA(GetFocus(), szTmp, szTitle, MB_OK | MB_ICONINFORMATION);
-	LocalFree(szTitle);
+    szTmpModule = (module == NULL) ? szDefaultModule : module;
+    nBufSize = (
+        strlen(szTmpModule)+strlen(szTitleText)+strlen(fmt)+2048);
+    /* Plz use malloc instead if you want to simplify the code */
+    szTitle = (LPSTR)HeapAlloc( 
+        GetProcessHeap(), HEAP_ZERO_MEMORY, nBufSize);
+    if (szTitle == NULL) return ; 
 
-	return;
+    txtlen = sprintf_s(szTitle, nBufSize, szTitleText, szTmpModule); 
+    if (txtlen > 0) { 
+        szText = szTitle + txtlen + 1;
+        txtlen = vsnprintf_s(
+            szText, nBufSize-txtlen, _TRUNCATE, fmt, ap);
+        if (txtlen > 0) {
+            MessageBoxA (
+                GetFocus(), szText, szTitle, MB_OK|MB_ICONINFORMATION
+            );
+        }
+    }
+    /* 
+     * The logic here, which handle the failure of HeapFree is not 
+     * tested, but you can simply take a look at this article:
+     * https://blogs.msdn.microsoft.com/oldnewthing/20120106-00/?p=8663
+     */
+    if (!HeapFree(GetProcessHeap(), 0, szTitle)) {
+        // ...
+    }
 #else
-	if (module != NULL) fprintf(stderr, "%s: ", module);
-	fprintf(stderr, "Warning, ");
-	vfprintf(stderr, fmt, ap);
-	fprintf(stderr, ".\n");
+	if (module != NULL) fprintf_s(stderr, "%s: ", module);
+	fprintf_s(stderr, "Warning, "); 
+    vfprintf_s(stderr, fmt, ap); fprintf_s(stderr, ".\n");
 #endif        
 }
 TIFFErrorHandler _TIFFwarningHandler = Win32WarningHandler;
@@ -411,26 +421,43 @@ static void
 Win32ErrorHandler(const char* module, const char* fmt, va_list ap)
 {
 #ifndef TIF_PLATFORM_CONSOLE
-	LPTSTR szTitle;
-	LPTSTR szTmp;
-	LPCTSTR szTitleText = "%s Error";
-	LPCTSTR szDefaultModule = "LIBTIFF";
-	LPCTSTR szTmpModule = (module == NULL) ? szDefaultModule : module;
-        SIZE_T nBufSize = (strlen(szTmpModule) +
-                        strlen(szTitleText) + strlen(fmt) + 256)*sizeof(char);
+    LPCSTR szTmpModule = NULL;
+    LPCSTR szTitleText = "%s Error";
+    LPCSTR szDefaultModule = "LIBTIFF";
+    SIZE_T nBufSize = 0; int txtlen = 0; 
+    LPSTR szText = NULL; LPSTR szTitle = NULL;
+    
+    szTmpModule = (module == NULL) ? szDefaultModule : module;
+    nBufSize = (
+        strlen(szTmpModule)+strlen(szTitleText)+strlen(fmt)+2048);
+    /* Plz use malloc instead if you want to simplify the code */
+    szTitle = (LPSTR)HeapAlloc( 
+        GetProcessHeap(), HEAP_ZERO_MEMORY, nBufSize);
+    if (szTitle == NULL) return ; 
 
-	if ((szTitle = (LPTSTR)LocalAlloc(LMEM_FIXED, nBufSize)) == NULL)
-		return;
-	sprintf(szTitle, szTitleText, szTmpModule);
-	szTmp = szTitle + (strlen(szTitle)+2)*sizeof(char);
-	vsnprintf(szTmp, nBufSize-(strlen(szTitle)+2)*sizeof(char), fmt, ap);
-	MessageBoxA(GetFocus(), szTmp, szTitle, MB_OK | MB_ICONEXCLAMATION);
-	LocalFree(szTitle);
-	return;
+    txtlen = sprintf_s(szTitle, nBufSize, szTitleText, szTmpModule); 
+    if (txtlen > 0) { 
+        szText = szTitle + txtlen + 1;
+        txtlen = vsnprintf_s(
+            szText, nBufSize-txtlen, _TRUNCATE, fmt, ap);
+        if (txtlen > 0) {
+            MessageBoxA (
+                GetFocus(), szText, szTitle, MB_OK|MB_ICONINFORMATION
+            );
+        }
+    }
+    /* 
+     * The logic here, which handle the failure of HeapFree is not 
+     * tested, but you can simply take a look at this article:
+     * https://blogs.msdn.microsoft.com/oldnewthing/20120106-00/?p=8663
+     */
+    if (!HeapFree(GetProcessHeap(), 0, szTitle)) {
+        // ...
+    }
 #else
-	if (module != NULL) fprintf(stderr, "%s: ", module);
-	vfprintf(stderr, fmt, ap);
-	fprintf(stderr, ".\n");
+    if (module != NULL) fprintf_s(stderr, "%s: ", module);
+	fprintf_s(stderr, "Error, "); 
+    vfprintf_s(stderr, fmt, ap); fprintf_s(stderr, ".\n");
 #endif        
 }
 TIFFErrorHandler _TIFFerrorHandler = Win32ErrorHandler;
