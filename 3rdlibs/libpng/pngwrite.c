@@ -473,12 +473,16 @@ png_convert_from_struct_tm(png_timep ptime, PNG_CONST struct tm * ttime)
 void PNGAPI
 png_convert_from_time_t(png_timep ptime, time_t ttime)
 {
-   struct tm *tbuf;
-
-   png_debug(1, "in png_convert_from_time_t");
-
-   tbuf = gmtime(&ttime);
-   png_convert_from_struct_tm(ptime, tbuf);
+#if defined(_WIN32)
+    errno_t err = 0; struct tm tbuf = {0};
+    err = gmtime_s(&tbuf, &ttime);
+    png_convert_from_struct_tm(ptime, &tbuf);
+#else
+    struct tm *tbuf;
+    tbuf = gmtime(&ttime);
+    png_convert_from_struct_tm(ptime,  tbuf);
+#endif
+    png_debug(1, "in png_convert_from_time_t");
 }
 #endif
 
@@ -2114,116 +2118,123 @@ int PNGAPI
 png_image_write_to_stdio(png_imagep image, FILE *file, int convert_to_8bit,
    const void *buffer, png_int_32 row_stride, const void *colormap)
 {
-   /* Write the image to the given (FILE*). */
-   if (image != NULL && image->version == PNG_IMAGE_VERSION)
-   {
-      if (file != NULL)
-      {
-         if (png_image_write_init(image) != 0)
-         {
-            png_image_write_control display;
-            int result;
+    /* Write the image to the given (FILE*). */
+    if (image != NULL && image->version == PNG_IMAGE_VERSION)
+    {
+        if (file != NULL)
+        {
+            if (png_image_write_init(image) != 0)
+            {
+                png_image_write_control display; int result;
 
-            /* This is slightly evil, but png_init_io doesn't do anything other
-             * than this and we haven't changed the standard IO functions so
-             * this saves a 'safe' function.
-             */
-            image->opaque->png_ptr->io_ptr = file;
+                /* This is slightly evil, but png_init_io doesn't do 
+                 * anything other than this and we haven't changed the 
+                 * standard IO functions so this saves a 'safe' function.
+                 */
+                image->opaque->png_ptr->io_ptr = file;
 
-            memset(&display, 0, (sizeof display));
-            display.image = image;
-            display.buffer = buffer;
-            display.row_stride = row_stride;
-            display.colormap = colormap;
-            display.convert_to_8bit = convert_to_8bit;
+                memset(&display, 0, (sizeof display));
+                display.image = image;
+                display.buffer = buffer;
+                display.row_stride = row_stride;
+                display.colormap = colormap;
+                display.convert_to_8bit = convert_to_8bit;
 
-            result = png_safe_execute(image, png_image_write_main, &display);
-            png_image_free(image);
-            return result;
-         }
-
-         else
-            return 0;
-      }
-
-      else
-         return png_image_error(image,
-            "png_image_write_to_stdio: invalid argument");
-   }
-
-   else if (image != NULL)
-      return png_image_error(image,
-         "png_image_write_to_stdio: incorrect PNG_IMAGE_VERSION");
-
-   else
-      return 0;
+                result = png_safe_execute(
+                    image, png_image_write_main, &display);
+                png_image_free(image); return result;
+            } else {
+                return 0;
+            }
+        } else {
+            return png_image_error(image,
+                "png_image_write_to_stdio: invalid argument");
+        }
+    } else if (image != NULL) {
+        return png_image_error(image,
+            "png_image_write_to_stdio: incorrect PNG_IMAGE_VERSION");
+    } else {
+        return 0;
+    }
 }
 
 int PNGAPI
-png_image_write_to_file(png_imagep image, const char *file_name,
-   int convert_to_8bit, const void *buffer, png_int_32 row_stride,
-   const void *colormap)
+png_image_write_to_file(
+    png_imagep image, const char *file_name, int convert_to_8bit, 
+    const void *buffer, png_int_32 row_stride, const void *colormap)
 {
-   /* Write the image to the named file. */
-   if (image != NULL && image->version == PNG_IMAGE_VERSION)
-   {
-      if (file_name != NULL)
-      {
-         FILE *fp = fopen(file_name, "wb");
+    
+    FILE *fp = NULL;
+#if defined(_WIN32)
+    errno_t err = 0; char errbuf[1024] = {0};
+#endif
 
-         if (fp != NULL)
-         {
-            if (png_image_write_to_stdio(image, fp, convert_to_8bit, buffer,
-               row_stride, colormap) != 0)
-            {
-               int error; /* from fflush/fclose */
-
-               /* Make sure the file is flushed correctly. */
-               if (fflush(fp) == 0 && ferror(fp) == 0)
-               {
-                  if (fclose(fp) == 0)
-                     return 1;
-
-                  error = errno; /* from fclose */
-               }
-
-               else
-               {
-                  error = errno; /* from fflush or ferror */
-                  (void)fclose(fp);
-               }
-
-               (void)remove(file_name);
-               /* The image has already been cleaned up; this is just used to
-                * set the error (because the original write succeeded).
-                */
-               return png_image_error(image, strerror(error));
+    /* Write the image to the named file. */
+    if (image != NULL && image->version == PNG_IMAGE_VERSION)
+    {
+        if (file_name != NULL) {
+#if defined(_WIN32)
+            err = fopen_s(&fp, file_name, "wb");
+            if (err == 0) {
+#else
+            fp = fopen(file_name, "wb");
+            if (fp != NULL) {
+#endif
+                if (png_image_write_to_stdio(image, fp, convert_to_8bit, 
+                        buffer, row_stride, colormap) != 0) {
+                    int error; /* from fflush/fclose */
+                    /* Make sure the file is flushed correctly. */
+                    if (fflush(fp) == 0 && ferror(fp) == 0) {
+                        if (fclose(fp) == 0) return 1;
+                        error = errno; /* from fclose */
+                    } else {
+                        error = errno; /* from fflush or ferror */
+                        (void)fclose(fp);
+                    }
+                    (void)remove(file_name);
+                    /* 
+                     * The image has already been cleaned up; this is just 
+                     * used to set the error (because the original write 
+                     * succeeded).
+                     */
+#if defined(_WIN32)
+                    err = strerror_s(errbuf, sizeof(errbuf), error);
+                    if (err == 0) {
+                        return png_image_error(image, errbuf); 
+                    } else { 
+                        return png_image_error(
+                            image, "Fail to query the error information!");
+                    }
+#else
+                    return png_image_error(image, strerror(error));
+#endif
+                } else {
+                    /* Clean up: just the opened file. */
+                    (void)fclose(fp); (void)remove(file_name); return 0;
+                }
+            } else {
+#if defined(_WIN32)
+                err = strerror_s(errbuf, sizeof(errbuf), errno);
+                if (err == 0) {
+                    return png_image_error(image, errbuf); 
+                } else { 
+                    return png_image_error(
+                        image, "Fail to query the error information!");
+                }
+#else
+                return png_image_error(image, strerror(errno));
+#endif
             }
-
-            else
-            {
-               /* Clean up: just the opened file. */
-               (void)fclose(fp);
-               (void)remove(file_name);
-               return 0;
-            }
-         }
-
-         else
-            return png_image_error(image, strerror(errno));
-      }
-
-      else
-         return png_image_error(image,
-            "png_image_write_to_file: invalid argument");
-   }
-
-   else if (image != NULL)
-      return png_image_error(image,
-         "png_image_write_to_file: incorrect PNG_IMAGE_VERSION");
-
-   else
-      return 0;
+        } else {
+            return png_image_error(image,
+                "png_image_write_to_file: invalid argument");
+        }
+    } else if (image != NULL) {
+        return png_image_error(image,
+            "png_image_write_to_file: incorrect PNG_IMAGE_VERSION");
+    } else {
+        return 0;
+    }
 }
 # endif /* STDIO */
 #endif /* SIMPLIFIED_WRITE */
