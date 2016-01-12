@@ -407,6 +407,10 @@ main(int argc, char** argv)
                 }
         }
 	_TIFF_lseek_f(fileno(fd), 0, SEEK_SET);
+    /* 
+     * warning C4244: 'function' : conversion from 'intptr_t' to 'int', 
+     * possible loss of data
+     */
 #if defined(_WIN32) && defined(USE_WIN32_FILEIO)
 	tif = TIFFFdOpen(_get_osfhandle(fileno(fd)), "temp", "r");
 #else

@@ -28,71 +28,11 @@ check_include_file(stddef.h HAVE_STDDEF_H)
 check_include_file(sys/types.h HAVE_SYS_TYPES_H)
 
 if(NOT HAVE_FSEEKO)
-	add_definitions(-DNO_FSEEKO)
+    add_definitions(-DNO_FSEEKO)
 endif()
 
 if(HAVE_OFF64_T)
-	add_definitions(-D_LARGEFILE64_SOURCE=1)
-endif()
-
-
-
-###############################################################################
-# compiler/linker
-###############################################################################
-
-if (WIN32)
-	add_definitions(-D__WIN32__)
-endif()
-
-if (CYGWIN)
-	add_definitions(-D__CYGWIN__)
-endif()
-
-# For MSVC compiler
-if (MSVC)
-	# Enable Security Features
-	if (NOT ( MSVC_VERSION LESS 1900 ))
-		set(GUARD "/guard:cf")	# New option in vs2015 or later
-	endif()
-	if (NOT ( MSVC_VERSION LESS 1700 ))
-		set(SDL "/sdl")			# New option in vs2012 or later
-		set(ANALYZE "/analyze")	# New option in vs2012 or later
-	endif()
-	if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
-		set(SAFESEH "/SAFESEH")	# It only works on windows 32bit
-	endif()
-	set(CMAKE_C_FLAGS 
-		"${CMAKE_C_FLAGS} ${ANALYZE} ${GUARD} ${SDL} /GS")
-	set(CMAKE_C_FLAGS_RELEASE 
-		"${CMAKE_C_FLAGS_RELEASE} ${ANALYZE} ${GUARD} ${SDL} /GS")
-	set(CMAKE_SHARED_LINKER_FLAGS 
-		"${CMAKE_SHARED_LINKER_FLAGS} ${SAFESEH} /NXCOMPAT")
-	set(CMAKE_MODULE_LINKER_FLAGS 
-		"${CMAKE_MODULE_LINKER_FLAGS} ${SAFESEH} /NXCOMPAT")
-	# Multithreaded building
-	if(MSVC_VERSION GREATER 1400)
-		set(PROCESSOR_COUNT "$ENV{NUMBER_OF_PROCESSORS}")
-		set(CMAKE_C_FLAGS 
-			"${CMAKE_C_FLAGS} /MP${PROCESSOR_COUNT}")
-		set(CMAKE_C_FLAGS_DEBUG 
-			"${CMAKE_C_FLAGS_DEBUG} /MP${PROCESSOR_COUNT}")
-		set(CMAKE_C_FLAGS_RELEASE 
-			"${CMAKE_C_FLAGS_RELEASE}  /MP${PROCESSOR_COUNT}")
-	endif()
-endif()
-# For MINGW compiler
-if (MINGW)
-	# Enable Security Features
-	add_definitions(-D_FORTIFY_SOURCE=2)
-	set(CMAKE_C_FLAGS  
-		"${CMAKE_C_FLAGS} -fstack-protector-all")
-	set(CMAKE_C_FLAGS_RELEASE 
-		"${CMAKE_C_FLAGS_RELEASE} -fstack-protector-all")
-	#set(CMAKE_SHARED_LINKER_FLAGS 
-	#	"${CMAKE_SHARED_LINKER_FLAGS} -Wl,nxcompat -Wl,dynamicbase")
-	#set(CMAKE_MODULE_LINKER_FLAGS 
-	#	"${CMAKE_MODULE_LINKER_FLAGS} -Wl,nxcompat -Wl,dynamicbase")
+    add_definitions(-D_LARGEFILE64_SOURCE=1)
 endif()
 
 
@@ -102,7 +42,7 @@ endif()
 ###############################################################################
 
 if(NOT ZLIB)
-	set(ZLIB libzlib)
+    set(ZLIB libzlib)
 endif()
 project(${ZLIB} C)
 set(ZLIB_VERSION "1.2.8")
@@ -111,20 +51,20 @@ set(ZLIB_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 # The configuration file
 configure_file(
-	"${CMAKE_CURRENT_SOURCE_DIR}/zconf.h.cmakein"
-	"${CMAKE_CURRENT_BINARY_DIR}/zconf.h" @ONLY )
+    "${CMAKE_CURRENT_SOURCE_DIR}/zconf.h.cmakein"
+    "${CMAKE_CURRENT_BINARY_DIR}/zconf.h" @ONLY )
 include_directories(
-	"${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
+    "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
 
 # The files in our project
 set(HEADERS 
-	crc32.h deflate.h gzguts.h inffast.h inffixed.h inflate.h
-	inftrees.h trees.h zutil.h
+    crc32.h deflate.h gzguts.h inffast.h inffixed.h inflate.h
+    inftrees.h trees.h zutil.h
 )
 set(SOURCES
-	adler32.c compress.c crc32.c deflate.c gzclose.c gzlib.c
-	gzread.c gzwrite.c inflate.c infback.c inftrees.c
-	inffast.c trees.c uncompr.c zutil.c
+    adler32.c compress.c crc32.c deflate.c gzclose.c gzlib.c
+    gzread.c gzwrite.c inflate.c infback.c inftrees.c
+    inffast.c trees.c uncompr.c zutil.c
 )
 set(LIBRARY_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/zconf.h" zlib.h)
 
@@ -135,7 +75,47 @@ add_library(${ZLIB} STATIC ${SOURCES} ${HEADERS} ${LIBRARY_HEADERS})
 set_target_properties(${ZLIB} PROPERTIES PREFIX "")
 set_target_properties(${ZLIB} PROPERTIES LIBRARY_OUTPUT_NAME ${ZLIB})
 if(MSVC)
-	set_target_properties(${ZLIB} PROPERTIES COMPILE_PDB_NAME ${ZLIB})
+    set_target_properties(${ZLIB} PROPERTIES COMPILE_PDB_NAME ${ZLIB})
+endif()
+
+# Compiler/Linker features on the target
+
+if ( WIN32 )
+    target_compile_definitions(${ZLIB} PRIVATE __WIN32__)
+endif()
+
+if ( CYGWIN )
+    target_compile_definitions(${ZLIB} PRIVATE __CYGWIN__)
+endif()
+
+if ( MSVC AND WIN32 )
+    # Enable Security Features
+    target_compile_options(${ZLIB} PRIVATE /GS)
+    if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
+        target_link_libraries(${ZLIB} PUBLIC /SAFESEH)
+        target_link_libraries(${ZLIB} PUBLIC /NXCOMPAT)
+        target_link_libraries(${ZLIB} PUBLIC /DYNAMICBASE)
+    endif()
+    if (NOT ( MSVC_VERSION LESS 1900 ))
+        target_compile_options(${ZLIB} PRIVATE /guard:cf)
+    endif()
+    if (NOT ( MSVC_VERSION LESS 1700 ))
+        target_compile_options(${ZLIB} PRIVATE /sdl /analyze)
+    endif()
+    # Multithreaded building
+    if(MSVC_VERSION GREATER 1400)
+        set(PROCESSOR_COUNT "$ENV{NUMBER_OF_PROCESSORS}")
+        target_compile_options(${ZLIB} PRIVATE "/MP${PROCESSOR_COUNT}")
+    endif()
+endif()
+
+if ( MINGW AND WIN32 )
+    # Enable Security Features
+    target_compile_options(${ZLIB} PRIVATE -fstack-protector-all)
+    target_compile_definitions(${ZLIB} PRIVATE _FORTIFY_SOURCE=2)
+    if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
+        target_link_libraries(${ZLIB} PUBLIC -Wl,nxcompat -Wl,dynamicbase)
+    endif()
 endif()
 
 
@@ -147,36 +127,44 @@ endif()
 # Build all test programs if LEPTONICA is not a sub-project
 if(${CMAKE_SOURCE_DIR} STREQUAL ${LEPTONICA_DIRECTORY})
 
-	add_executable(example contrib/test/example.c)
-	target_link_libraries(example ${ZLIB})
+    add_executable(example contrib/test/example.c)
+    target_link_libraries(example ${ZLIB})
+    if ( WIN32 )
+        target_compile_definitions(example PRIVATE _CRT_SECURE_NO_WARNINGS)
+        target_compile_definitions(example PRIVATE _CRT_SECURE_NO_DEPRECATE)
+        target_compile_definitions(example PRIVATE _CRT_NONSTDC_NO_DEPRECATE)
+    endif()
 
-	add_executable(minigzip contrib/test/minigzip.c)
-	target_link_libraries(minigzip ${ZLIB})
+    add_executable(minigzip contrib/test/minigzip.c)
+    target_link_libraries(minigzip ${ZLIB})
+    if ( WIN32 )
+        target_compile_definitions(minigzip PRIVATE _CRT_SECURE_NO_WARNINGS)
+        target_compile_definitions(minigzip PRIVATE _CRT_SECURE_NO_DEPRECATE)
+        target_compile_definitions(minigzip PRIVATE _CRT_NONSTDC_NO_DEPRECATE)
+    endif()
 
-	if(HAVE_OFF64_T)
-		# For 64bit, we should define _FILE_OFFSET_BITS.
-		set_target_properties(
-			example PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_BITS=64")
-		set_target_properties(
-			minigzip PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_BITS=64")
-	endif()
+    if(HAVE_OFF64_T)
+        # For 64bit, we should define _FILE_OFFSET_BITS.
+        target_compile_definitions(example PRIVATE _FILE_OFFSET_BITS=64)
+        target_compile_definitions(minigzip PRIVATE _FILE_OFFSET_BITS=64)
+    endif()
 
-	macro(zlib_tester name program args source digest output)
-		add_test(NAME "${name}" COMMAND "${CMAKE_COMMAND}"
-			"-DPROGRAM=$<TARGET_FILE:${program}>"
-			"-DARGS=${args}" 
-			"-DSOURCE=${source}" "-DDIGEST=${digest}" 
-			"-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/${output}"
-			-P "${CMAKE_CURRENT_SOURCE_DIR}/zlibtester.cmake"
-		)
-	endmacro()
+    macro(zlib_tester name program args source digest output)
+        add_test(NAME "${name}" COMMAND "${CMAKE_COMMAND}"
+            "-DPROGRAM=$<TARGET_FILE:${program}>"
+            "-DARGS=${args}" 
+            "-DSOURCE=${source}" "-DDIGEST=${digest}" 
+            "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/${output}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/zlibtester.cmake"
+        )
+    endmacro()
 
-	zlib_tester( example example "" "" "" "example-result.txt" )
+    zlib_tester( example example "" "" "" "example-result.txt" )
 
-	zlib_tester( minigzip minigzip 
-		"-d;${CMAKE_CURRENT_BINARY_DIR}/foo.gz" 
-		"${CMAKE_CURRENT_BINARY_DIR}/foo" 
-		"4C23A67F52D131D98E1FFEA31EE6CCD6" "minigzip-result.txt" 
-	)
-	
+    zlib_tester( minigzip minigzip 
+        "-d;${CMAKE_CURRENT_BINARY_DIR}/foo.gz" 
+        "${CMAKE_CURRENT_BINARY_DIR}/foo" 
+        "4C23A67F52D131D98E1FFEA31EE6CCD6" "minigzip-result.txt" 
+    )
+
 endif()

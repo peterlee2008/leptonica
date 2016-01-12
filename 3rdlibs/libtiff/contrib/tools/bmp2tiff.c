@@ -99,10 +99,10 @@ enum BMPComprMethod
     BMPC_RLE8 = 1L,         /* RLE for 8 bpp images */
     BMPC_RLE4 = 2L,         /* RLE for 4 bpp images */
     BMPC_BITFIELDS = 3L,    /* Bitmap is not compressed and the colour table
-			     * consists of three DWORD color masks that specify
-			     * the red, green, and blue components of each
-			     * pixel. This is valid when used with
-			     * 16- and 32-bpp bitmaps. */
+                             * consists of three DWORD color masks that specify
+                             * the red, green, and blue components of each
+                             * pixel. This is valid when used with
+                             * 16- and 32-bpp bitmaps. */
     BMPC_JPEG = 4L,         /* Indicates that the image is a JPEG image. */
     BMPC_PNG = 5L           /* Indicates that the image is a PNG image. */
 };
@@ -110,8 +110,8 @@ enum BMPComprMethod
 enum BMPLCSType                 /* Type of logical color space. */
 {
     BMPLT_CALIBRATED_RGB = 0,	/* This value indicates that endpoints and
-				 * gamma values are given in the appropriate
-				 * fields. */
+                                 * gamma values are given in the appropriate
+                                 * fields. */
     BMPLT_DEVICE_RGB = 1,
     BMPLT_DEVICE_CMYK = 2
 };
@@ -124,8 +124,8 @@ typedef struct
 } BMPCIEXYZ;
 
 typedef struct                  /* This structure contains the x, y, and z */
-{				/* coordinates of the three colors that */
-				/* correspond */
+{                               /* coordinates of the three colors that */
+                                /* correspond */
     BMPCIEXYZ   iCIERed;        /* to the red, green, and blue endpoints for */
     BMPCIEXYZ   iCIEGreen;      /* a specified logical color space. */
     BMPCIEXYZ	iCIEBlue;
@@ -135,9 +135,9 @@ typedef struct
 {
     char	bType[2];       /* Signature "BM" */
     uint32	iSize;          /* Size in bytes of the bitmap file. Should
-				 * always be ignored while reading because
-				 * of error in Windows 3.0 SDK's description
-				 * of this field */
+                             * always be ignored while reading because
+                             * of error in Windows 3.0 SDK's description
+                             * of this field */
     uint16	iReserved1;     /* Reserved, set as 0 */
     uint16	iReserved2;     /* Reserved, set as 0 */
     uint32	iOffBits;       /* Offset of the image from file start in bytes */
@@ -149,29 +149,29 @@ const int       BFH_SIZE = 14;
 typedef struct
 {
     uint32	iSize;          /* Size of BMPInfoHeader structure in bytes.
-				 * Should be used to determine start of the
-				 * colour table */
+                             * Should be used to determine start of the
+                             * colour table */
     int32	iWidth;         /* Image width */
     int32	iHeight;        /* Image height. If positive, image has bottom
-				 * left origin, if negative --- top left. */
+                             * left origin, if negative --- top left. */
     int16	iPlanes;        /* Number of image planes (must be set to 1) */
     int16	iBitCount;      /* Number of bits per pixel (1, 4, 8, 16, 24
-				 * or 32). If 0 then the number of bits per
-				 * pixel is specified or is implied by the
-				 * JPEG or PNG format. */
+                             * or 32). If 0 then the number of bits per
+                             * pixel is specified or is implied by the
+                             * JPEG or PNG format. */
     uint32	iCompression;	/* Compression method */
     uint32	iSizeImage;     /* Size of uncomressed image in bytes. May
-				 * be 0 for BMPC_RGB bitmaps. If iCompression
-				 * is BI_JPEG or BI_PNG, iSizeImage indicates
-				 * the size of the JPEG or PNG image buffer. */
+                             * be 0 for BMPC_RGB bitmaps. If iCompression
+                             * is BI_JPEG or BI_PNG, iSizeImage indicates
+                             * the size of the JPEG or PNG image buffer. */
     int32	iXPelsPerMeter; /* X resolution, pixels per meter (0 if not used) */
     int32	iYPelsPerMeter; /* Y resolution, pixels per meter (0 if not used) */
     uint32	iClrUsed;       /* Size of colour table. If 0, iBitCount should
-				 * be used to calculate this value
-				 * (1<<iBitCount). This value should be
-				 * unsigned for proper shifting. */
+                             * be used to calculate this value
+                             * (1<<iBitCount). This value should be
+                             * unsigned for proper shifting. */
     int32	iClrImportant;  /* Number of important colours. If 0, all
-				 * colours are required */
+                             * colours are required */
 
     /*
      * Fields above should be used for bitmaps, compatible with Windows NT 3.51
@@ -179,20 +179,20 @@ typedef struct
      */
 
     int32	iRedMask;       /* Colour mask that specifies the red component
-				 * of each pixel, valid only if iCompression
-				 * is set to BI_BITFIELDS. */
+                             * of each pixel, valid only if iCompression
+                             * is set to BI_BITFIELDS. */
     int32	iGreenMask;     /* The same for green component */
     int32	iBlueMask;      /* The same for blue component */
     int32	iAlphaMask;     /* Colour mask that specifies the alpha
-				 * component of each pixel. */
+                             * component of each pixel. */
     uint32	iCSType;        /* Colour space of the DIB. */
     BMPCIEXYZTriple sEndpoints; /* This member is ignored unless the iCSType
-				 * member specifies BMPLT_CALIBRATED_RGB. */
+                                 * member specifies BMPLT_CALIBRATED_RGB. */
     int32	iGammaRed;      /* Toned response curve for red. This member
-				 * is ignored unless color values are
-				 * calibrated RGB values and iCSType is set to
-				 * BMPLT_CALIBRATED_RGB. Specified
-				 * in 16^16 format. */
+                             * is ignored unless color values are
+                             * calibrated RGB values and iCSType is set to
+                             * BMPLT_CALIBRATED_RGB. Specified
+                             * in 16^16 format. */
     int32	iGammaGreen;    /* Toned response curve for green. */
     int32	iGammaBlue;     /* Toned response curve for blue. */
 } BMPInfoHeader;
@@ -226,12 +226,11 @@ static void usage(void);
 static int processCompressOptions(char*);
 static void rearrangePixels(char *, uint32, uint32);
 
-int
-main(int argc, char* argv[])
+int main(int argc, char* argv[])
 {
 	uint32	width, length;
-	uint16	nbands = 1;		/* number of bands in input image */
-        uint16	depth = 8;		/* bits per pixel in input image */
+	uint16	nbands = 1;         /* number of bands in input image */
+        uint16	depth = 8;      /* bits per pixel in input image */
 	uint32	rowsperstrip = (uint32) -1;
         uint16	photometric = PHOTOMETRIC_MINISBLACK;
 	int	fd = 0;
@@ -249,28 +248,28 @@ main(int argc, char* argv[])
 
 	int	c;
 #if !HAVE_DECL_OPTARG
-	extern int optind;
-	extern char* optarg;
+    extern int optind;
+    extern char* optarg;
 #endif
 
-	while ((c = getopt(argc, argv, "c:r:o:h")) != -1) {
-		switch (c) {
-		case 'c':		/* compression scheme */
-			if (!processCompressOptions(optarg))
-				usage();
-			break;
-		case 'r':		/* rows/strip */
-			rowsperstrip = atoi(optarg);
-			break;
-		case 'o':
-			outfilename = optarg;
-			break;
-		case 'h':
-			usage();
-		default:
-			break;
-		}
-	}
+    while ((c = getopt(argc, argv, "c:r:o:h")) != -1) {
+        switch (c) {
+        case 'c':       /* compression scheme */
+            if (!processCompressOptions(optarg))
+                usage();
+            break;
+        case 'r':       /* rows/strip */
+            rowsperstrip = atoi(optarg);
+            break;
+        case 'o':
+            outfilename = optarg;
+            break;
+        case 'h':
+            usage();
+        default:
+            break;
+        }
+    }
 
 	if (argc - optind < 2)
 		usage();
@@ -324,6 +323,10 @@ main(int argc, char* argv[])
                         TIFFError(infilename, "Failed obtain file information");
                         goto bad;
                 }
+        /* 
+         * warning C4244: '=' : conversion from '__int64' to 'uint32', 
+         * possible loss of data
+         */
 		file_hdr.iSize = instat.st_size;
 
                 /* -------------------------------------------------------------------- */

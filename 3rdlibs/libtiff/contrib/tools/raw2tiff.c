@@ -385,6 +385,10 @@ guessSize(int fd, TIFFDataType dtype, _TIFF_off_t hdr_size, uint32 nbands,
 		return -1;
 	}
 
+    /* 
+     * warning C4244: '=' : conversion from '__int64' to 'uint32', 
+     * possible loss of data
+     */
 	imagesize = (filestat.st_size - hdr_size) / nbands / depth;
 
 	if (*width != 0 && *length == 0) {

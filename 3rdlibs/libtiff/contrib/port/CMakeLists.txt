@@ -3,6 +3,8 @@
 # Copyright © 2015 Open Microscopy Environment / University of Dundee
 # Written by Roger Leigh <rleigh@codelibre.net>
 #
+# 01/12/2016, Modified by Gerron Jo
+#
 # Permission to use, copy, modify, distribute, and sell this software and
 # its documentation for any purpose is hereby granted without fee, provided
 # that (i) the above copyright notices and this permission notice appear in
@@ -30,22 +32,22 @@ set(SOURCES dummy.c)
 set(HEADERS libport.h)
 
 if(NOT HAVE_GETOPT)
-	list(APPEND SOURCES getopt.c)
+    list(APPEND SOURCES getopt.c)
 endif()
 if(NOT HAVE_LFIND)
-	list(APPEND SOURCES lfind.c)
+    list(APPEND SOURCES lfind.c)
 endif()
 if(MSVC AND NOT HAVE_SNPRINTF)
-	list(APPEND SOURCES snprintf.c)
+    list(APPEND SOURCES snprintf.c)
 endif()
 if(NOT HAVE_STRCASECMP)
-	list(APPEND SOURCES strcasecmp.c)
+    list(APPEND SOURCES strcasecmp.c)
 endif()
 if(NOT HAVE_STRTOUL)
-	list(APPEND SOURCES strtoul.c)
+    list(APPEND SOURCES strtoul.c)
 endif()
 if(NOT HAVE_STRTOULL)
-	list(APPEND SOURCES strtoull.c)
+    list(APPEND SOURCES strtoull.c)
 endif()
 
 add_library(${PORT} STATIC ${SOURCES} ${HEADERS})
