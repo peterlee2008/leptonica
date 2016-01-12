@@ -651,7 +651,7 @@ get_lse (j_decompress_ptr cinfo)
   int cid;
   INPUT_VARS(cinfo);
 
-  if (! cinfo->marker->saw_SOF)
+  if (!cinfo->marker->saw_SOF)
     ERREXITS(cinfo, JERR_SOF_BEFORE, "LSE");
 
   if (cinfo->num_components < 3) goto bad;

@@ -141,11 +141,16 @@ GLOBAL(void)
 jpeg_open_backing_store (j_common_ptr cinfo, backing_store_ptr info,
 			 long total_bytes_needed)
 {
-  if ((info->temp_file = tmpfile()) == NULL)
-    ERREXITS(cinfo, JERR_TFILE_CREATE, "");
-  info->read_backing_store = read_backing_store;
-  info->write_backing_store = write_backing_store;
-  info->close_backing_store = close_backing_store;
+#if defined(_WIN32)
+    errno_t err = tmpfile_s(&info->temp_file);
+    if (err == 0)
+#else
+    if ((info->temp_file = tmpfile()) == NULL)
+#endif
+        ERREXITS(cinfo, JERR_TFILE_CREATE, "");
+    info->read_backing_store = read_backing_store;
+    info->write_backing_store = write_backing_store;
+    info->close_backing_store = close_backing_store;
 }
 
 

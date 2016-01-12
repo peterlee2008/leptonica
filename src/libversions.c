@@ -41,35 +41,37 @@
 #include "gif_lib.h"
 #endif
 
-#if HAVE_LIBJPEG
-/* jpeglib.h includes jconfig.h, which makes the error of setting
- *   #define HAVE_STDLIB_H
- * which conflicts with config_auto.h (where it is set to 1) and results
- * for some gcc compiler versions in a warning.  The conflict is harmless
- * but we suppress it by undefining the variable. */
-#undef HAVE_STDLIB_H
-#include "jpeglib.h"
-#include "jerror.h"
+#if HAVE_LIBZ
+#include "zlib.h"
 #endif
 
 #if HAVE_LIBPNG
 #include "png.h"
 #endif
 
+#if HAVE_LIBJP2K
+#include LIBJP2K_HEADER
+#endif
+
+#if HAVE_LIBJPEG
+/* 
+ * jpeglib.h includes jconfig.h, which makes the error of setting
+ *   #define HAVE_STDLIB_H
+ * which conflicts with config_auto.h (where it is set to 1) and 
+ * results for some gcc compiler versions in a warning.  The 
+ * conflict is harmless but we suppress it by undefining the variable. 
+ */
+#undef HAVE_STDLIB_H
+#include "jerror.h"
+#include "jpeglib.h"
+#endif
+
 #if HAVE_LIBTIFF
 #include "tiffio.h"
 #endif
 
-#if HAVE_LIBZ
-#include "zlib.h"
-#endif
-
 #if HAVE_LIBWEBP
 #include "webp/encode.h"
-#endif
-
-#if HAVE_LIBJP2K
-#include LIBJP2K_HEADER
 #endif
 
 
@@ -119,7 +121,7 @@ char    *versionStrP = NULL;
     char                         buffer[JMSG_LENGTH_MAX];
     cinfo.err = jpeg_std_error(&err);
     err.msg_code = JMSG_VERSION;
-    (*err.format_message) ((j_common_ptr ) &cinfo, buffer);
+    (*err.format_message) ((j_common_ptr ) &cinfo, buffer, sizeof(buffer));
 
     if (!first) stringJoinIP(&versionStrP, " : ");
     first = FALSE;

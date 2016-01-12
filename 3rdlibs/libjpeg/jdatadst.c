@@ -20,36 +20,34 @@
 #include "jpeglib.h"
 #include "jerror.h"
 
-#ifndef HAVE_STDLIB_H		/* <stdlib.h> should declare malloc(),free() */
-extern void * malloc JPP((size_t size));
+#ifndef HAVE_STDLIB_H       /* <stdlib.h> should declare malloc(),free() */
 extern void free JPP((void *ptr));
+extern void * malloc JPP((size_t size));
 #endif
 
 
 /* Expanded data destination object for stdio output */
 
 typedef struct {
-  struct jpeg_destination_mgr pub; /* public fields */
-
-  FILE * outfile;		/* target stream */
-  JOCTET * buffer;		/* start of buffer */
+    struct jpeg_destination_mgr pub;    /* public fields */
+    FILE * outfile;                     /* target stream */
+    JOCTET * buffer;                    /* start of buffer */
 } my_destination_mgr;
 
 typedef my_destination_mgr * my_dest_ptr;
 
-#define OUTPUT_BUF_SIZE  4096	/* choose an efficiently fwrite'able size */
+#define OUTPUT_BUF_SIZE  4096   /* choose an efficiently fwrite'able size */
 
 
 /* Expanded data destination object for memory output */
 
 typedef struct {
-  struct jpeg_destination_mgr pub; /* public fields */
-
-  unsigned char ** outbuffer;	/* target buffer */
-  unsigned long * outsize;
-  unsigned char * newbuffer;	/* newly allocated buffer */
-  JOCTET * buffer;		/* start of buffer */
-  size_t bufsize;
+    struct jpeg_destination_mgr pub;    /* public fields */
+    unsigned char ** outbuffer;         /* target buffer */
+    unsigned long * outsize;
+    unsigned char * newbuffer;          /* newly allocated buffer */
+    JOCTET * buffer;                    /* start of buffer */
+    size_t bufsize;
 } my_mem_destination_mgr;
 
 typedef my_mem_destination_mgr * my_mem_dest_ptr;
@@ -180,7 +178,10 @@ METHODDEF(void)
 term_mem_destination (j_compress_ptr cinfo)
 {
   my_mem_dest_ptr dest = (my_mem_dest_ptr) cinfo->dest;
-
+  /* 
+   * warning C4267: '=' : conversion from 'size_t' to 'unsigned long', 
+   * possible loss of data 
+   */
   *dest->outbuffer = dest->buffer;
   *dest->outsize = dest->bufsize - dest->pub.free_in_buffer;
 }

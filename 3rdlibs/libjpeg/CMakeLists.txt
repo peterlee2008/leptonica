@@ -133,11 +133,12 @@ if( NOT HAVE_B_MODE_IN_FOPEN )
 endif()
 
 
+
 ###############################################################################
 # library settings
 ###############################################################################
 if(NOT JPEG)
-	set(JPEG libjpeg)
+    set(JPEG libjpeg)
 endif()
 project(${JPEG} C)
 set(JPEG_VERSION "9a")
@@ -231,5 +232,5 @@ endif()
 
 # Build all test programs if LEPTONICA is not a sub-project
 if(${CMAKE_SOURCE_DIR} STREQUAL ${LEPTONICA_DIRECTORY})
-	add_subdirectory( contrib/tools )
+    add_subdirectory( contrib/tools )
 endif()

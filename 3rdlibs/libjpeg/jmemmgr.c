@@ -26,17 +26,16 @@
  */
 
 #define JPEG_INTERNALS
-#define AM_MEMORY_MANAGER	/* we define jvirt_Xarray_control structs */
+#define AM_MEMORY_MANAGER   /* we define jvirt_Xarray_control structs */
 #include "jinclude.h"
 #include "jpeglib.h"
-#include "jmemsys.h"		/* import the system-dependent declarations */
+#include "jmemsys.h"        /* import the system-dependent declarations */
 
-#ifndef NO_GETENV
-#ifndef HAVE_STDLIB_H		/* <stdlib.h> should declare getenv() */
-extern char * getenv JPP((const char * name));
-#endif
-#endif
-
+//#ifndef NO_GETENV
+//#ifndef HAVE_STDLIB_H       /* <stdlib.h> should declare getenv() */
+//extern char * getenv JPP((const char * name));
+//#endif
+//#endif
 
 /*
  * Some important notes:
@@ -1028,92 +1027,108 @@ self_destruct (j_common_ptr cinfo)
 GLOBAL(void)
 jinit_memory_mgr (j_common_ptr cinfo)
 {
-  my_mem_ptr mem;
-  long max_to_use;
-  int pool;
-  size_t test_mac;
+    long max_to_use; int pool; size_t test_mac; 
+    my_mem_ptr mem; cinfo->mem = NULL;  /* for safety if init fails */
 
-  cinfo->mem = NULL;		/* for safety if init fails */
-
-  /* Check for configuration errors.
-   * SIZEOF(ALIGN_TYPE) should be a power of 2; otherwise, it probably
-   * doesn't reflect any real hardware alignment requirement.
-   * The test is a little tricky: for X>0, X and X-1 have no one-bits
-   * in common if and only if X is a power of 2, ie has only one one-bit.
-   * Some compilers may give an "unreachable code" warning here; ignore it.
-   */
-  if ((SIZEOF(ALIGN_TYPE) & (SIZEOF(ALIGN_TYPE)-1)) != 0)
-    ERREXIT(cinfo, JERR_BAD_ALIGN_TYPE);
-  /* MAX_ALLOC_CHUNK must be representable as type size_t, and must be
-   * a multiple of SIZEOF(ALIGN_TYPE).
-   * Again, an "unreachable code" warning may be ignored here.
-   * But a "constant too large" warning means you need to fix MAX_ALLOC_CHUNK.
-   */
-  test_mac = (size_t) MAX_ALLOC_CHUNK;
-  if ((long) test_mac != MAX_ALLOC_CHUNK ||
-      (MAX_ALLOC_CHUNK % SIZEOF(ALIGN_TYPE)) != 0)
-    ERREXIT(cinfo, JERR_BAD_ALLOC_CHUNK);
-
-  max_to_use = jpeg_mem_init(cinfo); /* system-dependent initialization */
-
-  /* Attempt to allocate memory manager's control block */
-  mem = (my_mem_ptr) jpeg_get_small(cinfo, SIZEOF(my_memory_mgr));
-
-  if (mem == NULL) {
-    jpeg_mem_term(cinfo);	/* system-dependent cleanup */
-    ERREXIT1(cinfo, JERR_OUT_OF_MEMORY, 0);
-  }
-
-  /* OK, fill in the method pointers */
-  mem->pub.alloc_small = alloc_small;
-  mem->pub.alloc_large = alloc_large;
-  mem->pub.alloc_sarray = alloc_sarray;
-  mem->pub.alloc_barray = alloc_barray;
-  mem->pub.request_virt_sarray = request_virt_sarray;
-  mem->pub.request_virt_barray = request_virt_barray;
-  mem->pub.realize_virt_arrays = realize_virt_arrays;
-  mem->pub.access_virt_sarray = access_virt_sarray;
-  mem->pub.access_virt_barray = access_virt_barray;
-  mem->pub.free_pool = free_pool;
-  mem->pub.self_destruct = self_destruct;
-
-  /* Make MAX_ALLOC_CHUNK accessible to other modules */
-  mem->pub.max_alloc_chunk = MAX_ALLOC_CHUNK;
-
-  /* Initialize working state */
-  mem->pub.max_memory_to_use = max_to_use;
-
-  for (pool = JPOOL_NUMPOOLS-1; pool >= JPOOL_PERMANENT; pool--) {
-    mem->small_list[pool] = NULL;
-    mem->large_list[pool] = NULL;
-  }
-  mem->virt_sarray_list = NULL;
-  mem->virt_barray_list = NULL;
-
-  mem->total_space_allocated = SIZEOF(my_memory_mgr);
-
-  /* Declare ourselves open for business */
-  cinfo->mem = & mem->pub;
-
-  /* Check for an environment variable JPEGMEM; if found, override the
-   * default max_memory setting from jpeg_mem_init.  Note that the
-   * surrounding application may again override this value.
-   * If your system doesn't support getenv(), define NO_GETENV to disable
-   * this feature.
-   */
-#ifndef NO_GETENV
-  { char * memenv;
-
-    if ((memenv = getenv("JPEGMEM")) != NULL) {
-      char ch = 'x';
-
-      if (sscanf(memenv, "%ld%c", &max_to_use, &ch) > 0) {
-	if (ch == 'm' || ch == 'M')
-	  max_to_use *= 1000L;
-	mem->pub.max_memory_to_use = max_to_use * 1000L;
-      }
+    /* Check for configuration errors.
+     * SIZEOF(ALIGN_TYPE) should be a power of 2; otherwise, it probably
+     * doesn't reflect any real hardware alignment requirement.
+     * The test is a little tricky: for X>0, X and X-1 have no one-bits
+     * in common if and only if X is a power of 2, ie has only one one-bit.
+     * Some compilers may give an "unreachable code" warning here; ignore it.
+     */
+    if ((SIZEOF(ALIGN_TYPE) & (SIZEOF(ALIGN_TYPE)-1)) != 0)
+        ERREXIT(cinfo, JERR_BAD_ALIGN_TYPE);
+    /* MAX_ALLOC_CHUNK must be representable as type size_t, and must be
+     * a multiple of SIZEOF(ALIGN_TYPE).
+     * Again, an "unreachable code" warning may be ignored here.
+     * But a "constant too large" warning means you need to fix 
+     * MAX_ALLOC_CHUNK.
+     */
+    test_mac = (size_t) MAX_ALLOC_CHUNK;
+    if ((long) test_mac != MAX_ALLOC_CHUNK || 
+        (MAX_ALLOC_CHUNK % SIZEOF(ALIGN_TYPE)) != 0) {
+        ERREXIT(cinfo, JERR_BAD_ALLOC_CHUNK);
     }
-  }
+
+    max_to_use = jpeg_mem_init(cinfo); /* system-dependent initialization */
+
+    /* Attempt to allocate memory manager's control block */
+    mem = (my_mem_ptr) jpeg_get_small(cinfo, SIZEOF(my_memory_mgr));
+
+    if (mem == NULL) {
+        jpeg_mem_term(cinfo);	/* system-dependent cleanup */
+        ERREXIT1(cinfo, JERR_OUT_OF_MEMORY, 0);
+    }
+
+    /* OK, fill in the method pointers */
+    mem->pub.alloc_small = alloc_small;
+    mem->pub.alloc_large = alloc_large;
+    mem->pub.alloc_sarray = alloc_sarray;
+    mem->pub.alloc_barray = alloc_barray;
+    mem->pub.request_virt_sarray = request_virt_sarray;
+    mem->pub.request_virt_barray = request_virt_barray;
+    mem->pub.realize_virt_arrays = realize_virt_arrays;
+    mem->pub.access_virt_sarray = access_virt_sarray;
+    mem->pub.access_virt_barray = access_virt_barray;
+    mem->pub.free_pool = free_pool;
+    mem->pub.self_destruct = self_destruct;
+
+    /* Make MAX_ALLOC_CHUNK accessible to other modules */
+    mem->pub.max_alloc_chunk = MAX_ALLOC_CHUNK;
+
+    /* Initialize working state */
+    mem->pub.max_memory_to_use = max_to_use;
+
+    for (pool = JPOOL_NUMPOOLS-1; pool >= JPOOL_PERMANENT; pool--) {
+        mem->small_list[pool] = NULL; mem->large_list[pool] = NULL;
+    }
+    mem->virt_sarray_list = NULL; mem->virt_barray_list = NULL;
+    mem->total_space_allocated = SIZEOF(my_memory_mgr);
+
+    /* Declare ourselves open for business */
+    cinfo->mem = & mem->pub;
+
+    /* Check for an environment variable JPEGMEM; if found, override the
+     * default max_memory setting from jpeg_mem_init.  Note that the
+     * surrounding application may again override this value.
+     * If your system doesn't support getenv(), define NO_GETENV to disable
+     * this feature.
+     */
+    { 
+#if defined(_WIN32)
+#include <errno.h>
+        char ch = 0; errno_t err = 0; 
+        char buffer[1024] = {0}; size_t bufsize = 0;
+        err = getenv_s(&bufsize, buffer, sizeof(buffer), "JPEGMEM");
+        if (err == ERANGE && bufsize != 0) {
+            char *pbuffer = (char *)malloc(bufsize);
+            if (pbuffer != NULL) {
+                err = getenv_s(&bufsize, pbuffer, bufsize, "JPEGMEM");
+                if (err == 0 && bufsize != 0) {
+                    if (sscanf_s(pbuffer, "%ld%c", 
+                            &max_to_use, sizeof(max_to_use), &ch) > 0) {
+                        if (ch == 'm' || ch == 'M') max_to_use *= 1000L;
+                        mem->pub.max_memory_to_use = max_to_use * 1000L;
+                    }
+                }
+                free(pbuffer);
+            }
+        } else {
+            if (sscanf_s(buffer, "%ld%c", &max_to_use, &ch) > 0) {
+                if (ch == 'm' || ch == 'M') max_to_use *= 1000L;
+                mem->pub.max_memory_to_use = max_to_use * 1000L;
+            }
+        }
+#else
+        char *pbuffer = NULL; char ch = 'x';
+        if ((pbuffer = getenv("JPEGMEM")) != NULL) {
+            if (sscanf(pbuffer, "%ld%c", &max_to_use, &ch) > 0) {
+                if (ch == 'm' || ch == 'M') max_to_use *= 1000L;
+                mem->pub.max_memory_to_use = max_to_use * 1000L;
+            }
+        }
 #endif
+    }
 
 }

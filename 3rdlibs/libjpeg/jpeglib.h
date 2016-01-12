@@ -707,19 +707,20 @@ struct jpeg_error_mgr {
   /* Routine that actually outputs a trace or error message */
   JMETHOD(void, output_message, (j_common_ptr cinfo));
   /* Format a message string for the most recent JPEG error or message */
-  JMETHOD(void, format_message, (j_common_ptr cinfo, char * buffer));
+  JMETHOD(void, format_message, (j_common_ptr cinfo, char *buffer, size_t bufsize));
 #define JMSG_LENGTH_MAX  200	/* recommended size of format_message buffer */
   /* Reset error state variables at start of a new image */
   JMETHOD(void, reset_error_mgr, (j_common_ptr cinfo));
   
   /* The message ID code and any parameters are saved here.
    * A message can have one string parameter or up to 8 int parameters.
+   * Note: Here we need one more char to make sure it always end with NULL
    */
   int msg_code;
 #define JMSG_STR_PARM_MAX  80
   union {
     int i[8];
-    char s[JMSG_STR_PARM_MAX];
+    char s[JMSG_STR_PARM_MAX+1];
   } msg_parm;
   
   /* Standard state variables for error facility */
