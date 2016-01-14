@@ -60,29 +60,31 @@ extern char * getenv JPP((const char * name));
 #else
 /* These definitions work for Microsoft C and compatible compilers */
 #include <malloc.h>		/* need _fmalloc(), _ffree() */
-#define far_malloc(x)	_fmalloc(x)
-#define far_free(x)	_ffree(x)
+#define far_free(x)     _ffree(x)
+#define far_malloc(x)   _fmalloc(x)
 #endif
 
 #else /* not NEED_FAR_POINTERS */
 
-#define far_malloc(x)	malloc(x)
-#define far_free(x)	free(x)
+#define far_free(x)     free(x)
+#define far_malloc(x)   malloc(x)
 
 #endif /* NEED_FAR_POINTERS */
 
-#ifdef DONT_USE_B_MODE		/* define mode parameters for fopen() */
+#ifdef DONT_USE_B_MODE      /* define mode parameters for fopen() */
 #define READ_BINARY	"r"
 #else
 #define READ_BINARY	"rb"
 #endif
 
-#ifndef USE_MSDOS_MEMMGR	/* make sure user got configuration right */
-  You forgot to define USE_MSDOS_MEMMGR in jconfig.h. /* deliberate syntax error */
+#ifndef USE_MSDOS_MEMMGR        /* make sure user got configuration right */
+/* deliberate syntax error */
+#error "You forgot to define USE_MSDOS_MEMMGR in jconfig.h." 
 #endif
 
-#if MAX_ALLOC_CHUNK >= 65535L	/* make sure jconfig.h got this right */
-  MAX_ALLOC_CHUNK should be less than 64K. /* deliberate syntax error */
+#if MAX_ALLOC_CHUNK >= 65535L   /* make sure jconfig.h got this right */
+/* deliberate syntax error */
+#error "MAX_ALLOC_CHUNK should be less than 64K." 
 #endif
 
 
@@ -104,17 +106,15 @@ typedef struct {		/* registers for calling EMS driver */
 	void far * ds_si;
       } EMScontext;
 
-extern short far jdos_open JPP((short far * handle, char far * filename));
-extern short far jdos_close JPP((short handle));
-extern short far jdos_seek JPP((short handle, long offset));
-extern short far jdos_read JPP((short handle, void far * buffer,
-				unsigned short count));
-extern short far jdos_write JPP((short handle, void far * buffer,
-				 unsigned short count));
-extern void far jxms_getdriver JPP((XMSDRIVER far *));
-extern void far jxms_calldriver JPP((XMSDRIVER, XMScontext far *));
 extern short far jems_available JPP((void));
+extern short far jdos_close JPP((short handle));
+extern void far jxms_getdriver JPP((XMSDRIVER far *));
 extern void far jems_calldriver JPP((EMScontext far *));
+extern short far jdos_seek JPP((short handle, long offset));
+extern void far jxms_calldriver JPP((XMSDRIVER, XMScontext far *));
+extern short far jdos_open JPP((short far * handle, char far * filename));
+extern short far jdos_read JPP((short handle, void far * buffer, unsigned short count));
+extern short far jdos_write JPP((short handle, void far * buffer, unsigned short count));
 
 
 /*
@@ -127,51 +127,47 @@ static int next_file_num;	/* to distinguish among several temp files */
 LOCAL(void)
 select_file_name (char * fname)
 {
-  const char * env;
-  char * ptr;
-  FILE * tfile;
-
-  /* Keep generating file names till we find one that's not in use */
-  for (;;) {
-    /* Get temp directory name from environment TMP or TEMP variable;
-     * if none, use "."
-     */
-    if ((env = (const char *) getenv("TMP")) == NULL)
-      if ((env = (const char *) getenv("TEMP")) == NULL)
-	env = ".";
-    if (*env == '\0')		/* null string means "." */
-      env = ".";
-    ptr = fname;		/* copy name to fname */
-    while (*env != '\0')
-      *ptr++ = *env++;
-    if (ptr[-1] != '\\' && ptr[-1] != '/')
-      *ptr++ = '\\';		/* append backslash if not in env variable */
-    /* Append a suitable file name */
-    next_file_num++;		/* advance counter */
-    sprintf(ptr, "JPG%03d.TMP", next_file_num);
-    /* Probe to see if file name is already in use */
-    if ((tfile = fopen(fname, READ_BINARY)) == NULL)
-      break;
-    fclose(tfile);		/* oops, it's there; close tfile & try again */
-  }
+    const char * env; char * ptr; FILE * tfile;
+    /* Keep generating file names till we find one that's not in use */
+    for (;;) {
+        /* Get temp directory name from environment TMP or TEMP variable;
+         * if none, use "."
+         */
+        if ((env = (const char *) getenv("TMP")) == NULL)
+          if ((env = (const char *) getenv("TEMP")) == NULL)
+        env = ".";
+        if (*env == '\0')   /* null string means "." */
+            env = ".";
+        ptr = fname;		/* copy name to fname */
+        while (*env != '\0')
+            *ptr++ = *env++;
+        if (ptr[-1] != '\\' && ptr[-1] != '/')
+            *ptr++ = '\\';  /* append backslash if not in env variable */
+        /* Append a suitable file name */
+        next_file_num++;    /* advance counter */
+        sprintf(ptr, "JPG%03d.TMP", next_file_num);
+        /* Probe to see if file name is already in use */
+        if ((tfile = fopen(fname, READ_BINARY)) == NULL) break;
+        fclose(tfile);      /* oops, it's there; close tfile & try again */
+    }
 }
 
 
 /*
- * Near-memory allocation and freeing are controlled by the regular library
- * routines malloc() and free().
+ * Near-memory allocation and freeing are controlled by the regular 
+ * library routines malloc() and free().
  */
 
 GLOBAL(void *)
 jpeg_get_small (j_common_ptr cinfo, size_t sizeofobject)
 {
-  return (void *) malloc(sizeofobject);
+    return (void *) malloc(sizeofobject);
 }
 
 GLOBAL(void)
 jpeg_free_small (j_common_ptr cinfo, void * object, size_t sizeofobject)
 {
-  free(object);
+    free(object);
 }
 
 
@@ -182,13 +178,13 @@ jpeg_free_small (j_common_ptr cinfo, void * object, size_t sizeofobject)
 GLOBAL(void FAR *)
 jpeg_get_large (j_common_ptr cinfo, size_t sizeofobject)
 {
-  return (void FAR *) far_malloc(sizeofobject);
+    return (void FAR *) far_malloc(sizeofobject);
 }
 
 GLOBAL(void)
 jpeg_free_large (j_common_ptr cinfo, void FAR * object, size_t sizeofobject)
 {
-  far_free(object);
+    far_free(object);
 }
 
 
@@ -208,7 +204,7 @@ GLOBAL(long)
 jpeg_mem_available (j_common_ptr cinfo, long min_bytes_needed,
 		    long max_bytes_needed, long already_allocated)
 {
-  return cinfo->mem->max_memory_to_use - already_allocated;
+    return cinfo->mem->max_memory_to_use - already_allocated;
 }
 
 
@@ -244,14 +240,14 @@ read_file_store (j_common_ptr cinfo, backing_store_ptr info,
 		 void FAR * buffer_address,
 		 long file_offset, long byte_count)
 {
-  if (jdos_seek(info->handle.file_handle, file_offset))
-    ERREXIT(cinfo, JERR_TFILE_SEEK);
-  /* Since MAX_ALLOC_CHUNK is less than 64K, byte_count will be too. */
-  if (byte_count > 65535L)	/* safety check */
-    ERREXIT(cinfo, JERR_BAD_ALLOC_CHUNK);
-  if (jdos_read(info->handle.file_handle, buffer_address,
-		(unsigned short) byte_count))
-    ERREXIT(cinfo, JERR_TFILE_READ);
+    if (jdos_seek(info->handle.file_handle, file_offset))
+        ERREXIT(cinfo, JERR_TFILE_SEEK);
+    /* Since MAX_ALLOC_CHUNK is less than 64K, byte_count will be too. */
+    if (byte_count > 65535L)    /* safety check */
+        ERREXIT(cinfo, JERR_BAD_ALLOC_CHUNK);
+    if (jdos_read(info->handle.file_handle, buffer_address,
+            (unsigned short) byte_count)) 
+        ERREXIT(cinfo, JERR_TFILE_READ);
 }
 
 
@@ -260,27 +256,27 @@ write_file_store (j_common_ptr cinfo, backing_store_ptr info,
 		  void FAR * buffer_address,
 		  long file_offset, long byte_count)
 {
-  if (jdos_seek(info->handle.file_handle, file_offset))
-    ERREXIT(cinfo, JERR_TFILE_SEEK);
-  /* Since MAX_ALLOC_CHUNK is less than 64K, byte_count will be too. */
-  if (byte_count > 65535L)	/* safety check */
-    ERREXIT(cinfo, JERR_BAD_ALLOC_CHUNK);
-  if (jdos_write(info->handle.file_handle, buffer_address,
-		 (unsigned short) byte_count))
-    ERREXIT(cinfo, JERR_TFILE_WRITE);
+    if (jdos_seek(info->handle.file_handle, file_offset))
+        ERREXIT(cinfo, JERR_TFILE_SEEK);
+    /* Since MAX_ALLOC_CHUNK is less than 64K, byte_count will be too. */
+    if (byte_count > 65535L)	/* safety check */
+        ERREXIT(cinfo, JERR_BAD_ALLOC_CHUNK);
+    if (jdos_write(info->handle.file_handle, buffer_address,
+            (unsigned short) byte_count))
+        ERREXIT(cinfo, JERR_TFILE_WRITE);
 }
 
 
 METHODDEF(void)
 close_file_store (j_common_ptr cinfo, backing_store_ptr info)
 {
-  jdos_close(info->handle.file_handle);	/* close the file */
-  remove(info->temp_name);	/* delete the file */
-/* If your system doesn't have remove(), try unlink() instead.
- * remove() is the ANSI-standard name for this function, but
- * unlink() was more common in pre-ANSI systems.
- */
-  TRACEMSS(cinfo, 1, JTRC_TFILE_CLOSE, info->temp_name);
+    jdos_close(info->handle.file_handle);	/* close the file */
+    remove(info->temp_name);	/* delete the file */
+    /* If your system doesn't have remove(), try unlink() instead.
+     * remove() is the ANSI-standard name for this function, but
+     * unlink() was more common in pre-ANSI systems.
+     */
+    TRACEMSS(cinfo, 1, JTRC_TFILE_CLOSE, info->temp_name);
 }
 
 
@@ -288,20 +284,20 @@ LOCAL(boolean)
 open_file_store (j_common_ptr cinfo, backing_store_ptr info,
 		 long total_bytes_needed)
 {
-  short handle;
+    short handle;
 
-  select_file_name(info->temp_name);
-  if (jdos_open((short far *) & handle, (char far *) info->temp_name)) {
-    /* might as well exit since jpeg_open_backing_store will fail anyway */
-    ERREXITS(cinfo, JERR_TFILE_CREATE, info->temp_name);
-    return FALSE;
-  }
-  info->handle.file_handle = handle;
-  info->read_backing_store = read_file_store;
-  info->write_backing_store = write_file_store;
-  info->close_backing_store = close_file_store;
-  TRACEMSS(cinfo, 1, JTRC_TFILE_OPEN, info->temp_name);
-  return TRUE;			/* succeeded */
+    select_file_name(info->temp_name);
+    if (jdos_open((short far *) & handle, (char far *) info->temp_name)) {
+        /* might as well exit since jpeg_open_backing_store will fail anyway */
+        ERREXITS(cinfo, JERR_TFILE_CREATE, info->temp_name);
+        return FALSE;
+    }
+    info->handle.file_handle = handle;
+    info->read_backing_store = read_file_store;
+    info->write_backing_store = write_file_store;
+    info->close_backing_store = close_file_store;
+    TRACEMSS(cinfo, 1, JTRC_TFILE_OPEN, info->temp_name);
+    return TRUE;                        /* succeeded */
 }
 
 

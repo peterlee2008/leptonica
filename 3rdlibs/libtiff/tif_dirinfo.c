@@ -627,12 +627,11 @@ _TIFFFindOrRegisterField(TIFF *tif, uint32 tag, TIFFDataType dt)
 TIFFField*
 _TIFFCreateAnonField(TIFF *tif, uint32 tag, TIFFDataType field_type)
 {
-	TIFFField *fld;
+	TIFFField *fld; int length = 0;
 	(void) tif;
 
 	fld = (TIFFField *) _TIFFmalloc(sizeof (TIFFField));
-	if (fld == NULL)
-	    return NULL;
+	if (fld == NULL) return NULL;
 	_TIFFmemset(fld, 0, sizeof(TIFFField));
 
 	fld->field_tag = tag;
@@ -704,8 +703,7 @@ _TIFFCreateAnonField(TIFF *tif, uint32 tag, TIFFDataType field_type)
 	fld->field_passcount = TRUE;
 	fld->field_name = (char *) _TIFFmalloc(32);
 	if (fld->field_name == NULL) {
-	    _TIFFfree(fld);
-	    return NULL;
+	    _TIFFfree(fld); return NULL;
 	}
 	fld->field_subfields = NULL;
 
@@ -713,8 +711,13 @@ _TIFFCreateAnonField(TIFF *tif, uint32 tag, TIFFDataType field_type)
 	 * note that this name is a special sign to TIFFClose() and
 	 * _TIFFSetupFields() to free the field
 	 */
-	snprintf(fld->field_name, 32, "Tag %d", (int) tag);
-
+#if defined(_WIN32)
+    length = _snprintf_s(
+        fld->field_name, 32, _TRUNCATE, "Tag %d", (int) tag);
+#else
+	length = snprintf(fld->field_name, 32, "Tag %d", (int) tag);
+    if (length <= 0 || length >= 32) fld->field_name[32-1] = '\0';
+#endif
 	return fld;    
 }
 

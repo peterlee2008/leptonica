@@ -390,12 +390,13 @@ Win32WarningHandler(const char* module, const char* fmt, va_list ap)
         GetProcessHeap(), HEAP_ZERO_MEMORY, nBufSize);
     if (szTitle == NULL) return ; 
 
-    txtlen = sprintf_s(szTitle, nBufSize, szTitleText, szTmpModule); 
-    if (txtlen > 0) { 
+    txtlen = _snprintf_s(
+        szTitle, nBufSize, _TRUNCATE, szTitleText, szTmpModule); 
+    if (errno == 0 && txtlen >= 0) { 
         szText = szTitle + txtlen + 1;
-        txtlen = vsnprintf_s(
+        txtlen = _vsnprintf_s(
             szText, nBufSize-txtlen, _TRUNCATE, fmt, ap);
-        if (txtlen > 0) {
+        if (errno == 0 && txtlen >= 0) {
             MessageBoxA (
                 GetFocus(), szText, szTitle, MB_OK|MB_ICONINFORMATION
             );
@@ -435,12 +436,13 @@ Win32ErrorHandler(const char* module, const char* fmt, va_list ap)
         GetProcessHeap(), HEAP_ZERO_MEMORY, nBufSize);
     if (szTitle == NULL) return ; 
 
-    txtlen = sprintf_s(szTitle, nBufSize, szTitleText, szTmpModule); 
-    if (txtlen > 0) { 
+    txtlen = _snprintf_s(
+        szTitle, nBufSize, _TRUNCATE, szTitleText, szTmpModule); 
+    if (errno == 0 && txtlen >= 0) { 
         szText = szTitle + txtlen + 1;
-        txtlen = vsnprintf_s(
+        txtlen = _vsnprintf_s(
             szText, nBufSize-txtlen, _TRUNCATE, fmt, ap);
-        if (txtlen > 0) {
+        if (errno == 0 && txtlen >= 0) {
             MessageBoxA (
                 GetFocus(), szText, szTitle, MB_OK|MB_ICONINFORMATION
             );

@@ -75,12 +75,19 @@ static const TIFFDisplay display_sRGB = {
  */
 int TIFFRGBAImageOK(TIFF* tif, char emsg[1024])
 {
+    int length = 0;
     TIFFDirectory* td = &tif->tif_dir;
     uint16 photometric; int colorchannels;
 
     if (!tif->tif_decodestatus) {
-        snprintf(emsg, 1024-1, 
+#if defined(_WIN32)
+        length = _snprintf_s(emsg, 1024, _TRUNCATE,
             "Sorry, requested compression method is not configured");
+#else
+        length = snprintf(emsg, 1024, 
+            "Sorry, requested compression method is not configured");
+        if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
         return (0);
     }
     switch (td->td_bitspersample) {
@@ -90,10 +97,19 @@ int TIFFRGBAImageOK(TIFF* tif, char emsg[1024])
         case 8:
         case 16: break;
         default:
-            snprintf(emsg, 1024-1, 
+#if defined(_WIN32)
+            length = _snprintf_s(emsg, 1024, _TRUNCATE,
+                     "Sorry, can not handle images with %d-bit samples",
+                     td->td_bitspersample
+                    );
+#else
+            length = snprintf(emsg, 1024, 
                 "Sorry, can not handle images with %d-bit samples",
                 td->td_bitspersample
             );
+            if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
+
             return (0);
     }
     colorchannels = td->td_samplesperpixel - td->td_extrasamples;
@@ -106,8 +122,14 @@ int TIFFRGBAImageOK(TIFF* tif, char emsg[1024])
                 photometric = PHOTOMETRIC_RGB;
                 break;
             default:
-                snprintf(emsg, 1024-1, 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Missing needed %s tag", photoTag);
+#else
+                length = snprintf(emsg, 1024, 
+                    "Missing needed %s tag", photoTag);
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 return (0);
         }
     }
@@ -118,12 +140,22 @@ int TIFFRGBAImageOK(TIFF* tif, char emsg[1024])
             if (td->td_planarconfig == PLANARCONFIG_CONTIG
                 && td->td_samplesperpixel != 1
                 && td->td_bitspersample < 8 ) {
-                snprintf(emsg, 1024-1, 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Sorry, can not handle contiguous data with %s=%d, "
                     "and %s=%d and Bits/Sample=%d",
                     photoTag, photometric,
                     "Samples/pixel", td->td_samplesperpixel,
                     td->td_bitspersample);
+#else
+                length = snprintf(emsg, 1024, 
+                    "Sorry, can not handle contiguous data with %s=%d, "
+                    "and %s=%d and Bits/Sample=%d",
+                    photoTag, photometric,
+                    "Samples/pixel", td->td_samplesperpixel,
+                    td->td_bitspersample);
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 return (0);
             }
             /*
@@ -142,9 +174,16 @@ int TIFFRGBAImageOK(TIFF* tif, char emsg[1024])
             break;
         case PHOTOMETRIC_RGB:
             if (colorchannels < 3) {
-                snprintf(emsg, 1024-1, 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
+                     "Sorry, can not handle RGB image with %s=%d",
+                     "Color channels", colorchannels);
+#else
+                length = snprintf(emsg, 1024, 
                     "Sorry, can not handle RGB image with %s=%d",
                     "Color channels", colorchannels);
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 return (0);
             }
             break;
@@ -153,63 +192,120 @@ int TIFFRGBAImageOK(TIFF* tif, char emsg[1024])
                 uint16 inkset;
                 TIFFGetFieldDefaulted(tif, TIFFTAG_INKSET, &inkset);
                 if (inkset != INKSET_CMYK) {
-                    snprintf(emsg, 1024-1, 
+#if defined(_WIN32)
+                    length = _snprintf_s(emsg, 1024, _TRUNCATE,
                         "Sorry, can not handle separated image with %s=%d",
                         "InkSet", inkset);
+#else
+                    length = snprintf(emsg, 1024, 
+                        "Sorry, can not handle separated image with %s=%d",
+                        "InkSet", inkset);
+                    if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                     return 0;
                 }
                 if (td->td_samplesperpixel < 4) {
-                    snprintf(emsg, 1024-1, 
+#if defined(_WIN32)
+                    length = _snprintf_s(emsg, 1024, _TRUNCATE,
+                             "Sorry, can not handle separated image with %s=%d",
+                             "Samples/pixel", td->td_samplesperpixel);
+#else
+                    length = snprintf(emsg, 1024, 
                         "Sorry, can not handle separated image with %s=%d",
                         "Samples/pixel", td->td_samplesperpixel);
+                    if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                     return 0;
                 }
                 break;
             }
         case PHOTOMETRIC_LOGL:
             if (td->td_compression != COMPRESSION_SGILOG) {
-                snprintf(emsg, 1024-1, 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Sorry, LogL data must have %s=%d",
                     "Compression", COMPRESSION_SGILOG);
+#else
+                length = snprintf(emsg, 1024, 
+                    "Sorry, LogL data must have %s=%d",
+                    "Compression", COMPRESSION_SGILOG);
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 return (0);
             }
             break;
         case PHOTOMETRIC_LOGLUV:
             if (td->td_compression != COMPRESSION_SGILOG &&
                 td->td_compression != COMPRESSION_SGILOG24) {
-                snprintf(emsg, 1024-1, 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Sorry, LogLuv data must have %s=%d or %d",
                     "Compression", COMPRESSION_SGILOG, COMPRESSION_SGILOG24);
+#else
+                length = snprintf(emsg, 1024, 
+                    "Sorry, LogLuv data must have %s=%d or %d",
+                    "Compression", COMPRESSION_SGILOG, COMPRESSION_SGILOG24);
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 return (0);
             }
             if (td->td_planarconfig != PLANARCONFIG_CONTIG) {
-                snprintf(emsg, 1024-1, 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Sorry, can not handle LogLuv images with %s=%d",
                     "Planarconfiguration", td->td_planarconfig);
+#else
+                length = snprintf(emsg, 1024, 
+                    "Sorry, can not handle LogLuv images with %s=%d",
+                    "Planarconfiguration", td->td_planarconfig);
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 return (0);
             }
             if( td->td_samplesperpixel != 3 )
             {
-                snprintf(emsg, 1024-1, 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Sorry, can not handle image with %s=%d",
                     "Samples/pixel", td->td_samplesperpixel);
+#else
+                length = snprintf(emsg, 1024, 
+                    "Sorry, can not handle image with %s=%d",
+                    "Samples/pixel", td->td_samplesperpixel);
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 return 0;
             }
             break;
         case PHOTOMETRIC_CIELAB:
             if( td->td_samplesperpixel != 3 || td->td_bitspersample != 8 )
             {
-                snprintf(emsg, 1024-1, 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Sorry, can not handle image with %s=%d and %s=%d",
                     "Samples/pixel", td->td_samplesperpixel,
                     "Bits/sample", td->td_bitspersample);
+#else
+                length = snprintf(emsg, 1024, 
+                    "Sorry, can not handle image with %s=%d and %s=%d",
+                    "Samples/pixel", td->td_samplesperpixel,
+                    "Bits/sample", td->td_bitspersample);
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 return 0;
             }
             break;
         default:
-            snprintf(emsg, 1024-1, 
+#if defined(_WIN32)
+            length = _snprintf_s(emsg, 1024, _TRUNCATE,
                 "Sorry, can not handle image with %s=%d",
                 photoTag, photometric);
+#else
+            length = snprintf(emsg, 1024, 
+                "Sorry, can not handle image with %s=%d",
+                photoTag, photometric);
+            if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
             return (0);
     }
     return (1);
@@ -259,7 +355,7 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
     uint16 *sampleinfo;
     uint16 extrasamples;
     uint16 planarconfig;
-    int colorchannels; int n_color;
+    int colorchannels, n_color; int length;
     uint16 *red_orig, *green_orig, *blue_orig;
     
 
@@ -282,9 +378,16 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
         case 16:
             break;
         default:
-            snprintf(emsg, sizeof(emsg), 
+#if defined(_WIN32)
+            length = _snprintf_s(emsg, 1024, _TRUNCATE,
                 "Sorry, can not handle images with %d-bit samples",
                 img->bitspersample);
+#else
+            length = snprintf(emsg, 1024, 
+                "Sorry, can not handle images with %d-bit samples",
+                img->bitspersample);
+            if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
             goto fail_return;
     }
     img->alpha = 0;
@@ -294,8 +397,8 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
     if (extrasamples >= 1)
     {
         switch (sampleinfo[0]) {
-            case EXTRASAMPLE_UNSPECIFIED:          /* Workaround for some images without */
-                if (img->samplesperpixel > 3)  /* correct info about alpha channel */
+            case EXTRASAMPLE_UNSPECIFIED:       /* Workaround for some images without */
+                if (img->samplesperpixel > 3)   /* correct info about alpha channel */
                     img->alpha = EXTRASAMPLE_ASSOCALPHA;
                 break;
             case EXTRASAMPLE_ASSOCALPHA:           /* data is pre-multiplied */
@@ -313,8 +416,7 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
         && img->samplesperpixel == 4
         && img->photometric == PHOTOMETRIC_RGB )
     {
-        img->alpha = EXTRASAMPLE_ASSOCALPHA;
-        extrasamples = 1;
+        img->alpha = EXTRASAMPLE_ASSOCALPHA; extrasamples = 1;
     }
 #endif
 
@@ -334,8 +436,14 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
                 img->photometric = PHOTOMETRIC_RGB;
                 break;
             default:
-                snprintf(emsg, sizeof(emsg), 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Missing needed %s tag", photoTag);
+#else
+                length = snprintf(emsg, 1024, 
+                    "Missing needed %s tag", photoTag);
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 goto fail_return;
         }
     }
@@ -343,8 +451,14 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
         case PHOTOMETRIC_PALETTE:
             if (!TIFFGetField(tif, TIFFTAG_COLORMAP,
                 &red_orig, &green_orig, &blue_orig)) {
-                snprintf(emsg, sizeof(emsg), 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Missing required \"Colormap\" tag");
+#else
+                length = snprintf(emsg, 1024, 
+                    "Missing required \"Colormap\" tag");
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 goto fail_return;
             }
 
@@ -354,8 +468,14 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
             img->greencmap = (uint16 *) _TIFFmalloc(sizeof(uint16)*n_color);
             img->bluecmap = (uint16 *) _TIFFmalloc(sizeof(uint16)*n_color);
             if( !img->redcmap || !img->greencmap || !img->bluecmap ) {
-                snprintf(emsg, sizeof(emsg), 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Out of memory for colormap copy");
+#else
+                length = snprintf(emsg, 1024, 
+                    "Out of memory for colormap copy");
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 goto fail_return;
             }
 
@@ -369,13 +489,23 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
             if (planarconfig == PLANARCONFIG_CONTIG
                 && img->samplesperpixel != 1
                 && img->bitspersample < 8 ) {
-                snprintf(emsg, sizeof(emsg), 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Sorry, can not handle contiguous data with %s=%d, "
                     "and %s=%d and Bits/Sample=%d",
                     photoTag, img->photometric,
                     "Samples/pixel", img->samplesperpixel,
                     img->bitspersample);
-                    goto fail_return;
+#else
+                length = snprintf(emsg, 1024, 
+                    "Sorry, can not handle contiguous data with %s=%d, "
+                    "and %s=%d and Bits/Sample=%d",
+                    photoTag, img->photometric,
+                    "Samples/pixel", img->samplesperpixel,
+                    img->bitspersample);
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
+                goto fail_return;
             }
             break;
         case PHOTOMETRIC_YCBCR:
@@ -406,9 +536,16 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
             break;
         case PHOTOMETRIC_RGB:
             if (colorchannels < 3) {
-                snprintf(emsg, sizeof(emsg), 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Sorry, can not handle RGB image with %s=%d",
                     "Color channels", colorchannels);
+#else
+                length = snprintf(emsg, 1024, 
+                    "Sorry, can not handle RGB image with %s=%d",
+                    "Color channels", colorchannels);
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 goto fail_return;
             }
             break;
@@ -417,24 +554,45 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
                 uint16 inkset;
                 TIFFGetFieldDefaulted(tif, TIFFTAG_INKSET, &inkset);
                 if (inkset != INKSET_CMYK) {
-                    snprintf(emsg, sizeof(emsg), 
+#if defined(_WIN32)
+                    length = _snprintf_s(emsg, 1024, _TRUNCATE,
                         "Sorry, can not handle separated image with %s=%d",
                         "InkSet", inkset);
+#else
+                    length = snprintf(emsg, 1024, 
+                        "Sorry, can not handle separated image with %s=%d",
+                        "InkSet", inkset);
+                    if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                     goto fail_return;
                 }
                 if (img->samplesperpixel < 4) {
-                    snprintf(emsg, sizeof(emsg), 
+#if defined(_WIN32)
+                    length = _snprintf_s(emsg, 1024, _TRUNCATE,
                         "Sorry, can not handle separated image with %s=%d",
                         "Samples/pixel", img->samplesperpixel);
+#else
+                    length = snprintf(emsg, 1024, 
+                        "Sorry, can not handle separated image with %s=%d",
+                        "Samples/pixel", img->samplesperpixel);
+                    if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                     goto fail_return;
                 }
             }
             break;
         case PHOTOMETRIC_LOGL:
             if (compress != COMPRESSION_SGILOG) {
-                snprintf(emsg, sizeof(emsg), 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Sorry, LogL data must have %s=%d",
                     "Compression", COMPRESSION_SGILOG);
+#else
+                length = snprintf(emsg, 1024, 
+                    "Sorry, LogL data must have %s=%d",
+                    "Compression", COMPRESSION_SGILOG);
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 goto fail_return;
             }
             TIFFSetField(tif, TIFFTAG_SGILOGDATAFMT, SGILOGDATAFMT_8BIT);
@@ -443,15 +601,29 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
             break;
         case PHOTOMETRIC_LOGLUV:
             if (compress != COMPRESSION_SGILOG && compress != COMPRESSION_SGILOG24) {
-                snprintf(emsg, sizeof(emsg),
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Sorry, LogLuv data must have %s=%d or %d",
                     "Compression", COMPRESSION_SGILOG, COMPRESSION_SGILOG24);
+#else
+                length = snprintf(emsg, 1024, 
+                         "Sorry, LogLuv data must have %s=%d or %d",
+                         "Compression", COMPRESSION_SGILOG, COMPRESSION_SGILOG24);
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 goto fail_return;
             }
             if (planarconfig != PLANARCONFIG_CONTIG) {
-                snprintf(emsg, sizeof(emsg), 
+#if defined(_WIN32)
+                length = _snprintf_s(emsg, 1024, _TRUNCATE,
                     "Sorry, can not handle LogLuv images with %s=%d",
                     "Planarconfiguration", planarconfig);
+#else
+                length = snprintf(emsg, 1024, 
+                    "Sorry, can not handle LogLuv images with %s=%d",
+                    "Planarconfiguration", planarconfig);
+                if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
                 return (0);
             }
             TIFFSetField(tif, TIFFTAG_SGILOGDATAFMT, SGILOGDATAFMT_8BIT);
@@ -461,9 +633,16 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
         case PHOTOMETRIC_CIELAB:
             break;
         default:
-            snprintf(emsg, sizeof(emsg), 
+#if defined(_WIN32)
+            length = _snprintf_s(emsg, 1024, _TRUNCATE,
                 "Sorry, can not handle image with %s=%d",
                 photoTag, img->photometric);
+#else
+            length = snprintf(emsg, 1024, 
+                "Sorry, can not handle image with %s=%d",
+                photoTag, img->photometric);
+            if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
             goto fail_return;
     }
     img->Map = NULL; img->BWmap = NULL; img->PALmap = NULL;
@@ -476,12 +655,24 @@ TIFFRGBAImageBegin(TIFFRGBAImage* img, TIFF* tif, int stop, char emsg[1024])
         !(planarconfig == PLANARCONFIG_SEPARATE && img->samplesperpixel > 1);
     if (img->isContig) {
         if (!PickContigCase(img)) {
-            snprintf(emsg, sizeof(emsg), "Sorry, can not handle image");
+#if defined(_WIN32)
+            length = _snprintf_s(
+                emsg, 1024, _TRUNCATE, "Sorry, can not handle image");
+#else
+            length = snprintf(emsg, 1024, "Sorry, can not handle image");
+            if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
             goto fail_return;
         }
     } else {
         if (!PickSeparateCase(img)) {
-            snprintf(emsg, sizeof(emsg), "Sorry, can not handle image");
+#if defined(_WIN32)
+            length = _snprintf_s(
+                emsg, 1024, _TRUNCATE, "Sorry, can not handle image");
+#else
+            length = snprintf(emsg, 1024, "Sorry, can not handle image");
+            if (length <= 0 || length >= 1024) emsg[1024-1] = '\0';
+#endif
             goto fail_return;
         }
     }

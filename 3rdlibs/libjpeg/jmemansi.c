@@ -141,7 +141,7 @@ GLOBAL(void)
 jpeg_open_backing_store (j_common_ptr cinfo, backing_store_ptr info,
 			 long total_bytes_needed)
 {
-#if defined(_WIN32)
+#if defined(_WIN32) && defined(_MSC_VER) && _MSC_VER >= 1400
     errno_t err = tmpfile_s(&info->temp_file);
     if (err == 0)
 #else

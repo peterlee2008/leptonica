@@ -56,11 +56,8 @@
  */
 
 #ifdef _WIN32
-  #ifdef _MSC_VER
-  #include <direct.h>
-  #else
-  #include <io.h>
-  #endif  /* _MSC_VER */
+#include <io.h>
+#include <direct.h>
 #endif  /* _WIN32 */
 
 #include "string.h"
@@ -97,10 +94,10 @@ static char  mainName[] = "cleanpdf";
         /* Rasterize: pdfimages -f fname root */
     imagedir = stringJoin(basedir, "/image");
 #if 1
-#ifndef _WIN32
-    mkdir(imagedir, 0777);
-#else
+#if defined(_WIN32)
     _mkdir(imagedir);
+#else
+    mkdir(imagedir, 0777);
 #endif  /* _WIN32 */
     for (i = 0; i < n; i++) {
         fname = sarrayGetString(sa, i, L_NOCOPY);

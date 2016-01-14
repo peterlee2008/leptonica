@@ -105,10 +105,18 @@ TIFFCodec _TIFFBuiltinCODECS[] = {
 static int
 _notConfigured(TIFF* tif)
 {
-    char compression_code[20];
+    char compression_code[20] = {0}; int length = 0;
     const TIFFCodec* c = TIFFFindCODEC(tif->tif_dir.td_compression);
-    snprintf(compression_code, 
-        sizeof(compression_code), "%d", tif->tif_dir.td_compression);
+#if defined(_WIN32)
+    length = _snprintf_s(compression_code, _countof(compression_code), 
+                _TRUNCATE, "%d", tif->tif_dir.td_compression);
+#else
+    length = snprintf(compression_code, 
+        _countof(compression_code), "%d", tif->tif_dir.td_compression);
+    if (length <= 0 || length >= _countof(compression_code)) {
+        compression_code[_countof(compression_code)-1] = '\0';
+    }
+#endif
     TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
                  "%s compression support is not configured", 
                  c ? c->name : compression_code );

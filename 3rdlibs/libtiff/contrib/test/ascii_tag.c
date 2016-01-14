@@ -38,6 +38,10 @@
 # include <unistd.h> 
 #endif 
 
+#if defined(WIN32) || defined(_WIN32)
+#define unlink _unlink
+#endif
+
 #include "tiffio.h"
 
 static const char filename[] = "ascii_test.tiff";

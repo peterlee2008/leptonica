@@ -194,9 +194,10 @@ format_message (j_common_ptr cinfo, char * buffer, size_t bufsize)
     /* Format the message into the passed buffer */
 #if defined(_WIN32)
     if (isstring) {
-        sprintf_s(buffer, bufsize, msgtext, err->msg_parm.s);
+        len = _snprintf_s(
+            buffer, bufsize, _TRUNCATE, msgtext, err->msg_parm.s);
     } else {
-        sprintf_s(buffer, bufsize, msgtext,
+        len = _snprintf_s(buffer, bufsize, _TRUNCATE, msgtext,
             err->msg_parm.i[0], err->msg_parm.i[1],
             err->msg_parm.i[2], err->msg_parm.i[3],
             err->msg_parm.i[4], err->msg_parm.i[5],
@@ -207,7 +208,7 @@ format_message (j_common_ptr cinfo, char * buffer, size_t bufsize)
     if (isstring) {
         len = snprintf(buffer, bufsize, msgtext, err->msg_parm.s);
     } else {
-        len = snprintf( buffer, bufsize, msgtext,
+        len = snprintf(buffer, bufsize, msgtext,
             err->msg_parm.i[0], err->msg_parm.i[1],
             err->msg_parm.i[2], err->msg_parm.i[3],
             err->msg_parm.i[4], err->msg_parm.i[5],
@@ -215,7 +216,7 @@ format_message (j_common_ptr cinfo, char * buffer, size_t bufsize)
         );
     }
     /* We must make sure it's valid string (end with null char) */
-    if (len >= bufsize) err->msg_parm.s[bufsize-1] = '\0';
+    if (len < 0 || len >= bufsize) err->msg_parm.s[bufsize-1] = '\0';
 #endif
 }
 

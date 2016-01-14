@@ -87,15 +87,20 @@ void TIFFSetClientInfo( TIFF *tif, void *data, const char *name )
     if( link != NULL ) { link->data = data; return; }
 
     /*
-    ** Create a new link. (Not secure, this function need to be rewritten)
+    ** Create a new link. (Not secure, need to be rewritten)
     */
     link = (TIFFClientInfoLink *)_TIFFmalloc(sizeof(TIFFClientInfoLink));
     assert (link != NULL);
     link->data = data;
     link->next = tif->tif_clientinfo;
     link->name = (char *)_TIFFmalloc((tmsize_t)(namelen+1));
-    assert (link->name != NULL); strncpy(link->name, namelen, name);
-
+    assert (link->name != NULL);
+#if defined(_WIN32)
+    strncpy_s(link->name, namelen+1, name, namelen);
+#else
+    strncpy (link->name, namelen, name);
+    link->name[namelen] = '\0'; /* null char padding */
+#endif
     tif->tif_clientinfo = link;
 }
 /*

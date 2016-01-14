@@ -294,22 +294,23 @@ gzFile ZEXPORT gzopen64(path, mode)
 }
 
 /* -- see zlib.h -- */
-gzFile ZEXPORT gzdopen(fd, mode)
-    int fd;
-    const char *mode;
+gzFile ZEXPORT gzdopen(int fd, const char *mode)
 {
     /* identifier for error messages */
-    char *path; gzFile gz;
+    char *path; gzFile gz; int length = 0;
 
     if (fd < 0 || (path=(char *)malloc(7+3*sizeof(int))) == NULL)
         return NULL;
 
     /* Here, we simplify the code, snprintf must exist */
 #if defined(_WIN32)
-    _snprintf_s(                                    /* for debugging */
+    length = _snprintf_s(                   /* for debugging */
         path, 7+3*sizeof(int), _TRUNCATE, "<fd:%d>", fd);  
 #else
-    snprintf(path, 7+3*sizeof(int), "<fd:%d>", fd); /* for debugging */
+    length = snprintf(                      /* for debugging */
+        path, 7+3*sizeof(int), "<fd:%d>", fd); 
+    if (length <= 0 || length >= 7+3*sizeof(int))
+        path[7+3*sizeof(int)-1] = '\0';
 #endif
 
     gz = gz_open(path, fd, mode); free(path); return gz;

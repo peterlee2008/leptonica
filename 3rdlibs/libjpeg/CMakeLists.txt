@@ -174,6 +174,7 @@ elseif( CMAKE_SIZEOF_VOID_P EQUAL 2 AND MSVC )
     list(APPEND SOURCES jmemdos.c)	# Use jmemdos.c for 16-bit MS-DOS
 else()
     list(APPEND SOURCES jmemansi.c)	# Use jmemansi.c for other cases
+    #list(APPEND SOURCES jmemname.c)	# Use jmemname.c for other cases
 endif()
 
 # Set up the library
@@ -186,42 +187,39 @@ set_target_properties(${JPEG} PROPERTIES LIBRARY_OUTPUT_NAME ${JPEG})
 
 # Compiler/Linker features on the target
 
-if (WIN32)
+if ( WIN32 )
     target_compile_definitions(${JPEG} PRIVATE __WIN32__)
 endif()
 
-if (CYGWIN)
+if ( CYGWIN )
     target_compile_definitions(${JPEG} PRIVATE __CYGWIN__)
 endif()
 
-if (MSVC)
+if ( MSVC AND WIN32 )
     # Enable Security Features
     target_compile_options(${JPEG} PRIVATE /GS)
-    if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
-        target_link_libraries(${JPEG} PUBLIC /SAFESEH)
-        target_link_libraries(${JPEG} PUBLIC /NXCOMPAT)
-        target_link_libraries(${JPEG} PUBLIC /DYNAMICBASE)
-    endif()
     if (NOT ( MSVC_VERSION LESS 1900 ))
         target_compile_options(${JPEG} PRIVATE /guard:cf)
     endif()
     if (NOT ( MSVC_VERSION LESS 1700 ))
         target_compile_options(${JPEG} PRIVATE /sdl /analyze)
     endif()
-    # Multithreaded building
+    # Multiple Processes Building
     if(MSVC_VERSION GREATER 1400)
         set(PROCESSOR_COUNT "$ENV{NUMBER_OF_PROCESSORS}")
         target_compile_options(${JPEG} PRIVATE "/MP${PROCESSOR_COUNT}")
     endif()
 endif()
 
-if (MINGW)
+if ( MINGW AND WIN32 )
     # Enable Security Features
-    target_compile_options(${JPEG} PRIVATE -fstack-protector-all)
+    # http://stackoverflow.com
+    # /questions/4492799/undefined-reference-to-stack-chk-fail
+    target_link_libraries(${JPEG} INTERFACE -lssp)
     target_compile_definitions(${JPEG} PRIVATE _FORTIFY_SOURCE=2)
-    if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
-        target_link_libraries(${JPEG} PUBLIC -Wl,nxcompat -Wl,dynamicbase)
-    endif()
+    target_compile_options(${JPEG} PRIVATE -fstack-protector-strong)
+    # Enable security APIs
+    target_compile_definitions(${JPEG} PRIVATE MINGW_HAS_SECURE_API)
 endif()
 
 

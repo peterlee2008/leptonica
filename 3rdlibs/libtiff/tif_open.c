@@ -53,14 +53,12 @@ _TIFFgetMode(const char* mode, const char* module)
 	switch (mode[0]) {
 	case 'r':
 		m = O_RDONLY;
-		if (mode[1] == '+')
-			m = O_RDWR;
+		if (mode[1] == '+') m = O_RDWR;
 		break;
 	case 'w':
 	case 'a':
 		m = O_RDWR|O_CREAT;
-		if (mode[0] == 'w')
-			m |= O_TRUNC;
+		if (mode[0] == 'w') m |= O_TRUNC;
 		break;
 	default:
 		TIFFErrorExt(0, module, "\"%s\": Bad mode", mode);
@@ -101,17 +99,13 @@ TIFFClientOpen(
     assert(sizeof(int64)==8);
     assert(sizeof(tmsize_t)==sizeof(void*));
     {
-        union{
-            uint8 a8[2];
-            uint16 a16;
-        } n;
-        n.a8[0]=1;
-        n.a8[1]=0;
-        #ifdef WORDS_BIGENDIAN
+        union{ uint8 a8[2]; uint16 a16; } n;
+        n.a8[0]=1; n.a8[1]=0;
+#ifdef WORDS_BIGENDIAN
         assert(n.a16==256);
-        #else
+#else
         assert(n.a16==1);
-        #endif
+#endif
     }
 
     m = _TIFFgetMode(mode, module);
@@ -124,7 +118,13 @@ TIFFClientOpen(
     }
     _TIFFmemset(tif, 0, sizeof (*tif));
     tif->tif_name = (char *)tif + sizeof(TIFF);
-    strncpy(tif->tif_name, namelen, name);
+#if defined(_WIN32)
+    strncpy_s(tif->tif_name, namelen+1, name, namelen);
+#else
+    strncpy(tif->tif_name, namelen, name); 
+    /* Not necessary, because the buffer has been initialized */
+    tif->tif_name[namelen] = '\0';      /* ended with a null char */
+#endif
     tif->tif_mode = m &~ (O_CREAT|O_TRUNC);
     tif->tif_curdir = (uint16) -1;      /* non-existent directory */
     tif->tif_curoff = 0;

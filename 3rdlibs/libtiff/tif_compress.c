@@ -211,9 +211,13 @@ TIFFRegisterCODEC(uint16 scheme, const char* name, TIFFInitMethod init)
         cd->info->scheme = scheme; 
         cd->next = registeredCODECS;
         registeredCODECS = cd;
+#if defined(_WIN32)
+        if (strcpy_s(cd->info->name,namelen+1,name)) {
+#else
         if (!strncpy(cd->info->name, namelen, name)) {
+#endif
             _TIFFfree(cd); return NULL;
-        }
+        } else cd->info->name[namelen] = '\0';
     } else {
         TIFFErrorExt(0, "TIFFRegisterCODEC",
             "No space to register compression scheme %s", name);

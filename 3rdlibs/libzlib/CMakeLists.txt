@@ -91,18 +91,13 @@ endif()
 if ( MSVC AND WIN32 )
     # Enable Security Features
     target_compile_options(${ZLIB} PRIVATE /GS)
-    if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
-        target_link_libraries(${ZLIB} PUBLIC /SAFESEH)
-        target_link_libraries(${ZLIB} PUBLIC /NXCOMPAT)
-        target_link_libraries(${ZLIB} PUBLIC /DYNAMICBASE)
-    endif()
     if (NOT ( MSVC_VERSION LESS 1900 ))
         target_compile_options(${ZLIB} PRIVATE /guard:cf)
     endif()
     if (NOT ( MSVC_VERSION LESS 1700 ))
         target_compile_options(${ZLIB} PRIVATE /sdl /analyze)
     endif()
-    # Multithreaded building
+    # Multiple Processes Building
     if(MSVC_VERSION GREATER 1400)
         set(PROCESSOR_COUNT "$ENV{NUMBER_OF_PROCESSORS}")
         target_compile_options(${ZLIB} PRIVATE "/MP${PROCESSOR_COUNT}")
@@ -111,11 +106,13 @@ endif()
 
 if ( MINGW AND WIN32 )
     # Enable Security Features
-    target_compile_options(${ZLIB} PRIVATE -fstack-protector-all)
+    # http://stackoverflow.com
+    # /questions/4492799/undefined-reference-to-stack-chk-fail
+    target_link_libraries(${ZLIB} INTERFACE -lssp)
     target_compile_definitions(${ZLIB} PRIVATE _FORTIFY_SOURCE=2)
-    if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
-        target_link_libraries(${ZLIB} PUBLIC -Wl,nxcompat -Wl,dynamicbase)
-    endif()
+    target_compile_options(${ZLIB} PRIVATE -fstack-protector-strong)
+    # Enable security APIs
+    target_compile_definitions(${ZLIB} PRIVATE MINGW_HAS_SECURE_API)
 endif()
 
 
@@ -143,7 +140,7 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${LEPTONICA_DIRECTORY})
         target_compile_definitions(minigzip PRIVATE _CRT_NONSTDC_NO_DEPRECATE)
     endif()
 
-    if(HAVE_OFF64_T)
+    if ( HAVE_OFF64_T )
         # For 64bit, we should define _FILE_OFFSET_BITS.
         target_compile_definitions(example PRIVATE _FILE_OFFSET_BITS=64)
         target_compile_definitions(minigzip PRIVATE _FILE_OFFSET_BITS=64)

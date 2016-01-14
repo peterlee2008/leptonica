@@ -1096,7 +1096,7 @@ jinit_memory_mgr (j_common_ptr cinfo)
      * this feature.
      */
     { 
-#if defined(_WIN32)
+#if defined(_WIN32) && defined(_MSC_VER) && _MSC_VER >= 1400
 #include <errno.h>
         char ch = 0; errno_t err = 0; 
         char buffer[1024] = {0}; size_t bufsize = 0;

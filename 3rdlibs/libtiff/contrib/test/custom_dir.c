@@ -30,12 +30,17 @@
  */
 
 #include "tif_config.h"
+
 #include <stdio.h>
 #include <string.h>
 
 #ifdef HAVE_UNISTD_H 
 # include <unistd.h> 
 #endif 
+
+#if defined(WIN32) || defined(_WIN32)
+#define unlink _unlink
+#endif
 
 #include "tiffio.h"
 #include "tif_dir.h"

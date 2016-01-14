@@ -43,6 +43,7 @@
 #include <sys/types.h>
 #endif
 
+#include <io.h>
 #include <stdio.h>
 
 /*

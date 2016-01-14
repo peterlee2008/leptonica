@@ -110,32 +110,26 @@ if (CYGWIN)
     target_compile_definitions(${LEPTONICA} PRIVATE __CYGWIN__)
 endif()
 
-if ( MSVC )
+if ( MSVC AND WIN32 )
     # Enable Security Features
     target_compile_options(${LEPTONICA} PRIVATE /GS)
-    if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
-        target_link_libraries(${LEPTONICA} PUBLIC /SAFESEH)
-        target_link_libraries(${LEPTONICA} PUBLIC /NXCOMPAT)
-        target_link_libraries(${LEPTONICA} PUBLIC /DYNAMICBASE)
-    endif()
     if (NOT ( MSVC_VERSION LESS 1900 ))
         target_compile_options(${LEPTONICA} PRIVATE /guard:cf)
     endif()
     if (NOT ( MSVC_VERSION LESS 1700 ))
         target_compile_options(${LEPTONICA} PRIVATE /sdl /analyze)
     endif()
-    # Multithreaded building
+    # Multiple Processes Building
     if(MSVC_VERSION GREATER 1400)
         set(PROCESSOR_COUNT "$ENV{NUMBER_OF_PROCESSORS}")
         target_compile_options(${LEPTONICA} PRIVATE "/MP${PROCESSOR_COUNT}")
     endif()
 endif()
 
-if ( MINGW )
+if ( MINGW AND WIN32 )
     # Enable Security Features
-    target_compile_options(${LEPTONICA} PRIVATE -fstack-protector-all)
     target_compile_definitions(${LEPTONICA} PRIVATE _FORTIFY_SOURCE=2)
-    if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
-        target_link_libraries(${LEPTONICA} PUBLIC -Wl,nxcompat -Wl,dynamicbase)
-    endif()
+    target_compile_options(${LEPTONICA} PRIVATE -fstack-protector-strong)
+    # Enable security APIs
+    target_compile_definitions(${LEPTONICA} PRIVATE MINGW_HAS_SECURE_API)
 endif()

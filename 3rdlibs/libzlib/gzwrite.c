@@ -370,7 +370,7 @@ int ZEXPORTVA gzprintf ( file, format,
     int a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, 
         a12, a13, a14, a15, a16, a17, a18, a19, a20;
 {
-    int len; gz_statep state; z_streamp strm;
+    int length; gz_statep state; z_streamp strm;
 
     /* get internal structure */
     if (file == NULL) return -1;
@@ -398,26 +398,26 @@ int ZEXPORTVA gzprintf ( file, format,
         return 0;
     
 #if defined(_WIN32)
-    len = _snprintf_s(
+    length = _snprintf_s(
         (char *)(state->in), state->size, _TRUNCATE, format, 
         a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, 
         a12, a13, a14, a15, a16, a17, a18, a19, a20
     );
 #else
-    len = snprintf((char *)(state->in), state->size, format, 
+    length = snprintf((char *)(state->in), state->size, format, 
         a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, 
         a12, a13, a14, a15, a16, a17, a18, a19, a20
     );
 #endif
 
     /* check that printf() results fit in buffer */
-    if (len <= 0 || len >= (int)state->size) return 0;
+    if (length <= 0 || len >= (int)state->size) return 0;
 
     /* update buffer and position, defer compression until needed */
-    strm->avail_in = (unsigned)len;
+    strm->avail_in = (unsigned)length;
     strm->next_in = state->in;
-    state->x.pos += len;
-    return len;
+    state->x.pos += length;
+    return length;
 }
 
 #endif

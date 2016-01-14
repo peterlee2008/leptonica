@@ -257,7 +257,7 @@ endif()
 
 # Set up the library
 add_library(${TIFF} STATIC ${SOURCES} ${HEADERS} ${LIBRARY_HEADERS})
-target_link_libraries(${TIFF} ${ZLIB} ${PORT})  # TIFF need zlib component
+target_link_libraries(${TIFF} ${ZLIB} ${PORT})  # Need zlib and port
 
 # The c properties on the target.
 set_target_properties(${TIFF} PROPERTIES PREFIX "")
@@ -280,31 +280,25 @@ endif()
 if ( MSVC AND WIN32 )
     # Enable Security Features
     target_compile_options(${TIFF} PRIVATE /GS)
-    if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
-        target_link_libraries(${TIFF} PUBLIC /SAFESEH)
-        target_link_libraries(${TIFF} PUBLIC /NXCOMPAT)
-        target_link_libraries(${TIFF} PUBLIC /DYNAMICBASE)
-    endif()
     if (NOT ( MSVC_VERSION LESS 1900 ))
         target_compile_options(${TIFF} PRIVATE /guard:cf)
     endif()
     if (NOT ( MSVC_VERSION LESS 1700 ))
         target_compile_options(${TIFF} PRIVATE /sdl /analyze)
     endif()
-    # Multithreaded building
+    # Multiple Processes Building
     if(MSVC_VERSION GREATER 1400)
         set(PROCESSOR_COUNT "$ENV{NUMBER_OF_PROCESSORS}")
         target_compile_options(${TIFF} PRIVATE "/MP${PROCESSOR_COUNT}")
     endif()
 endif()
 
-if (MINGW)
+if ( MINGW AND WIN32 )
     # Enable Security Features
-    target_compile_options(${TIFF} PRIVATE -fstack-protector-all)
     target_compile_definitions(${TIFF} PRIVATE _FORTIFY_SOURCE=2)
-    if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
-        target_link_libraries(${TIFF} PUBLIC -Wl,nxcompat -Wl,dynamicbase)
-    endif()
+    target_compile_options(${TIFF} PRIVATE -fstack-protector-strong)
+    # Enable security APIs
+    target_compile_definitions(${TIFF} PRIVATE MINGW_HAS_SECURE_API)
 endif()
 
 

@@ -382,6 +382,7 @@ endif()
 
 add_executable(cleanpdf cleanpdf.c ${LIBRARY_HEADERS})
 target_link_libraries(cleanpdf ${LEPTONICA})
+target_compile_definitions(cleanpdf PRIVATE MINGW_HAS_SECURE_API)
 if ( WIN32 )
     target_compile_definitions(cleanpdf PRIVATE _CRT_SECURE_NO_WARNINGS)
     target_compile_definitions(cleanpdf PRIVATE _CRT_SECURE_NO_DEPRECATE)

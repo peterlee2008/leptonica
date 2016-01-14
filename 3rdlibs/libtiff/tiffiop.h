@@ -36,76 +36,35 @@
 # include <fcntl.h>
 #endif
 
-#ifdef HAVE_SYS_TYPES_H
-# include <sys/types.h>
-#endif
-
-#ifdef HAVE_STRING_H
-# include <string.h>
-#endif
-
 #ifdef HAVE_ASSERT_H
 # include <assert.h>
 #else
 # define assert(x) 
 #endif
 
+#ifdef HAVE_STRING_H
+# include <string.h>
+#endif
+
 #ifdef HAVE_SEARCH_H
 # include <search.h>
-#else
-extern void *lfind(const void *, const void *, size_t *, size_t,
-		   int (*)(const void *, const void *));
 #endif
 
-#if defined(HAVE__SNPRINTF_S)
-#undef snprintf
-#define snprintf(buf, count, fmt, ...) \
-    _snprintf_s(buf, count+1, count, fmt, __VA_ARGS__)
-#elif defined(HAVE_SPRINTF_S)
-#undef snprintf
-#define snprintf(buf, count, fmt, ...) \
-    _sprintf_s(buf, count+1, fmt, __VA_ARGS__)
-#elif defined(HAVE__SNPRINTF)
-#undef snprintf
-#define snprintf _snprintf
-#elif !defined(HAVE_SNPRINTF)
-#undef snprintf
-#define snprintf _TIFF_snprintf_f
-extern int snprintf(char* str, size_t size, const char* format, ...);
-#endif
-
-#if defined(HAVE__STRNCPY_S) || defined(HAVE_STRNCPY_S)
-#undef strncpy
-#define strncpy(buf, count, src) \
-    (strncpy_s(buf, count+1, src, count) == 0 ? buf : NULL)
-#elif defined(HAVE__STRCPY_S) || defined(HAVE_STRCPY_S)
-#undef strncpy
-#define strncpy(buf, count, src) \
-    (strcpy_s(buf, count+1, src) == 0 ? buf : NULL)
-#elif defined(HAVE__STRCPY)
-#undef strncpy
-#define strncpy _strncpy
-#elif !defined(HAVE_STRCPY)
-#error "The compiler you use has been obsolete!"
-#endif
-
-#if !defined(_countof)
-#define _countof(_x_) sizeof(_x_)/sizeof(_x_[0])
+#ifdef HAVE_SYS_TYPES_H
+# include <sys/types.h>
 #endif
 
 #include "tiffio.h"
-
 #include "tif_dir.h"
 
 #ifndef STRIP_SIZE_DEFAULT
 # define STRIP_SIZE_DEFAULT 8192
 #endif
 
-#define    streq(a,b)      (strcmp(a,b) == 0)
+#define streq(a,b) (strcmp(a,b) == 0)
 
-#ifndef TRUE
-#define	TRUE	1
-#define	FALSE	0
+#ifndef _countof
+#define _countof(_x_) (sizeof(_x_)/sizeof(_x_[0]))
 #endif
 
 typedef struct client_info {
@@ -124,8 +83,8 @@ typedef union _multi_integer {
  * Typedefs for ``method pointers'' used internally.
  * these are depriciated and provided only for backwards compatibility
  */
-typedef unsigned char tidataval_t;    /* internal image data value type */
-typedef tidataval_t* tidata_t;        /* reference to internal image data */
+typedef unsigned char tidataval_t;  /* internal image data value type */
+typedef tidataval_t* tidata_t;      /* reference to internal image data */
 
 typedef void (*TIFFVoidMethod)(TIFF*);
 typedef int (*TIFFBoolMethod)(TIFF*);

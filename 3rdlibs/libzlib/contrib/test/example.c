@@ -96,11 +96,7 @@ void test_compress(compr, comprLen, uncompr, uncomprLen)
     err = compress(compr, &comprLen, (const Bytef*)hello, len);
     CHECK_ERR(err, "compress");
 
-#if defined(_WIN32)
-    strcpy_s((char*)uncompr, uncomprLen, "garbage");
-#else
-    strcpy  ((char*)uncompr, "garbage");
-#endif
+    strcpy((char*)uncompr, "garbage");
 
     err = uncompress(uncompr, &uncomprLen, compr, comprLen);
     CHECK_ERR(err, "uncompress");
@@ -150,11 +146,7 @@ void test_gzio(fname, uncompr, uncomprLen)
         exit(1);
     }
     
-#if defined(_WIN32)
-    strcpy_s((char*)uncompr, uncomprLen, "garbage");
-#else
     strcpy  ((char*)uncompr, "garbage");
-#endif
 
     if (gzread(file, uncompr, (unsigned)uncomprLen) != len) {
         fprintf(stderr, "gzread err: %s\n", gzerror(file, &err));
@@ -250,11 +242,7 @@ void test_inflate(compr, comprLen, uncompr, uncomprLen)
     int err;
     z_stream d_stream; /* decompression stream */
 
-#if defined(_WIN32)
-    strcpy_s((char*)uncompr, uncomprLen, "garbage");
-#else
     strcpy  ((char*)uncompr, "garbage");
-#endif
 
     d_stream.zalloc = zalloc;
     d_stream.zfree = zfree;
@@ -350,11 +338,7 @@ void test_large_inflate(compr, comprLen, uncompr, uncomprLen)
     int err;
     z_stream d_stream; /* decompression stream */
 
-#if defined(_WIN32)
-    strcpy_s((char*)uncompr, uncomprLen, "garbage");
-#else
     strcpy  ((char*)uncompr, "garbage");
-#endif
 
     d_stream.zalloc = zalloc;
     d_stream.zfree = zfree;
@@ -433,11 +417,7 @@ void test_sync(compr, comprLen, uncompr, uncomprLen)
     int err;
     z_stream d_stream; /* decompression stream */
 
-#if defined(_WIN32)
-    strcpy_s((char*)uncompr, uncomprLen, "garbage");
-#else
     strcpy  ((char*)uncompr, "garbage");
-#endif
 
     d_stream.zalloc = zalloc;
     d_stream.zfree = zfree;
@@ -518,11 +498,7 @@ void test_dict_inflate(compr, comprLen, uncompr, uncomprLen)
     int err;
     z_stream d_stream; /* decompression stream */
 
-#if defined(_WIN32)
-    strcpy_s((char*)uncompr, uncomprLen, "garbage");
-#else
     strcpy  ((char*)uncompr, "garbage");
-#endif
 
     d_stream.zalloc = zalloc;
     d_stream.zfree = zfree;
