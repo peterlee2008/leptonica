@@ -77,7 +77,7 @@ typedef union _multi_integer {
     int32 sint32; uint32 uint32; 
     int64 sint64; uint64 uint64; 
     size_t autoint;
-} multi_integer, *pmulti_integer;
+} multi_integer, *p_multi_integer;
 
 /*
  * Typedefs for ``method pointers'' used internally.
@@ -204,7 +204,7 @@ struct tiff {
     size_t               tif_nfieldscompat;
 };
 
-#define isPseudoTag(t) (t > 0xffff)            /* is tag value normal or pseudo */
+#define isPseudoTag(t) (t > 0xffff)         /* is tag value normal or pseudo */
 
 #define isTiled(tif) (((tif)->tif_flags & TIFF_ISTILED) != 0)
 #define isMapped(tif) (((tif)->tif_flags & TIFF_MAPPED) != 0)

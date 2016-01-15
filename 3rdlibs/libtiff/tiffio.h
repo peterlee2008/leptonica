@@ -65,52 +65,37 @@ typedef struct tiff TIFF;
  * int32 on 32bit machines, int64 on 64bit machines
  */
 typedef TIFF_SSIZE_T    tmsize_t;
-typedef uint64          toff_t;     /* file offset */
-/* the following are deprecated and should be replaced by their defining
-   counterparts */
-typedef uint32          ttag_t;     /* directory tag */
-typedef uint16          tdir_t;     /* directory index */
-typedef uint16          tsample_t;  /* sample number */
-typedef uint32          tstrile_t;  /* strip or tile number */
-typedef tstrile_t       tstrip_t;   /* strip number */
-typedef tstrile_t       ttile_t;    /* tile number */
-typedef tmsize_t        tsize_t;    /* i/o size in bytes */
-typedef void*           tdata_t;    /* image data ref */
-
-#if !defined(__WIN32__) && (defined(_WIN32) || defined(WIN32))
-#define __WIN32__
-#endif
-
-/*
- * On windows you should define USE_WIN32_FILEIO if you are using tif_win32.c
- * or AVOID_WIN32_FILEIO if you are using something else (like tif_unix.c).
- *
- * By default tif_unix.c is assumed.
+typedef uint64          toff_t;         /* file offset */
+/* 
+ * the following are deprecated and should be replaced by their defining
+ * counterparts 
  */
+typedef uint32          ttag_t;         /* directory tag */
+typedef uint16          tdir_t;         /* directory index */
+typedef uint16          tsample_t;      /* sample number */
+typedef uint32          tstrile_t;      /* strip or tile number */
+typedef tstrile_t       tstrip_t;       /* strip number */
+typedef tstrile_t       ttile_t;        /* tile number */
+typedef tmsize_t        tsize_t;        /* i/o size in bytes */
+typedef void*           tdata_t;        /* image data ref */
 
-#if defined(_WINDOWS) || defined(__WIN32__) || defined(_Windows)
-#  if !defined(__CYGWIN) && !defined(AVOID_WIN32_FILEIO) && !defined(USE_WIN32_FILEIO)
-#    define AVOID_WIN32_FILEIO
-#  endif
-#endif
-
-#if defined(USE_WIN32_FILEIO)
+#if defined(_WIN32)
 # define VC_EXTRALEAN
 # include <windows.h>
-# ifdef __WIN32__
-DECLARE_HANDLE(thandle_t);		/* Win32 file handle */
+# if defined(USE_WIN32_FILEIO) 
+    DECLARE_HANDLE(thandle_t);          /* Win32 file handle */
 # else
-typedef HFILE  thandle_t ;		/* client data handle */
-# endif /* __WIN32__ */
+#   include <stdio.h>
+    typedef FILE*  thandle_t ;		    /* client data handle */
+# endif /* USE_WIN32_FILEIO */
 #else
-typedef void*  thandle_t ;		/* client data handle */
-#endif /* USE_WIN32_FILEIO */
+  typedef void*  thandle_t ;            /* client data handle */
+#endif  /* _WIN32 */
 
 /*
- * Flags to pass to TIFFPrintDirectory to control
- * printing of data structures that are potentially
- * very large.   Bit-or these flags to enable printing
- * multiple items.
+ * Flags to pass to TIFFPrintDirectory to control printing of 
+ * data structures that are potentially very large.   
+ * Bit-or these flags to enable printing multiple items.
  */
 #define TIFFPRINT_NONE	       0x0    /* no extra info */
 #define TIFFPRINT_STRIPS       0x1    /* strips/tiles info */
@@ -135,26 +120,26 @@ typedef void*  thandle_t ;		/* client data handle */
 
 /* Structure for holding information about a display device. */
 
-typedef unsigned char TIFFRGBValue;               /* 8-bit samples */
+typedef unsigned char TIFFRGBValue;     /* 8-bit samples */
 
 typedef struct {
-	float d_mat[3][3];                        /* XYZ -> luminance matrix */
-	float d_YCR;                              /* Light o/p for reference white */
+	float d_mat[3][3];                  /* XYZ -> luminance matrix */
+	float d_YCR;                        /* Light o/p for reference white */
 	float d_YCG;
 	float d_YCB;
-	uint32 d_Vrwr;                            /* Pixel values for ref. white */
+	uint32 d_Vrwr;                      /* Pixel values for ref. white */
 	uint32 d_Vrwg;
 	uint32 d_Vrwb;
-	float d_Y0R;                              /* Residual light for black pixel */
+	float d_Y0R;                        /* Residual light for black pixel */
 	float d_Y0G;
 	float d_Y0B;
-	float d_gammaR;                           /* Gamma values for the three guns */
+	float d_gammaR;                     /* Gamma values for the three guns */
 	float d_gammaG;
 	float d_gammaB;
 } TIFFDisplay;
 
-typedef struct {                                  /* YCbCr->RGB support */
-	TIFFRGBValue* clamptab;                   /* range clamping table */
+typedef struct {                        /* YCbCr->RGB support */
+	TIFFRGBValue* clamptab;             /* range clamping table */
 	int* Cr_r_tab;
 	int* Cb_b_tab;
 	int32* Cr_g_tab;
@@ -162,15 +147,15 @@ typedef struct {                                  /* YCbCr->RGB support */
 	int32* Y_tab;
 } TIFFYCbCrToRGB;
 
-typedef struct {                                  /* CIE Lab 1976->RGB support */
-	int range;                                /* Size of conversion table */
+typedef struct {                        /* CIE Lab 1976->RGB support */
+	int range;                          /* Size of conversion table */
 #define CIELABTORGB_TABLE_RANGE 1500
 	float rstep, gstep, bstep;
-	float X0, Y0, Z0;                         /* Reference white point */
+	float X0, Y0, Z0;                   /* Reference white point */
 	TIFFDisplay display;
-	float Yr2r[CIELABTORGB_TABLE_RANGE + 1];  /* Conversion of Yr to r */
-	float Yg2g[CIELABTORGB_TABLE_RANGE + 1];  /* Conversion of Yg to g */
-	float Yb2b[CIELABTORGB_TABLE_RANGE + 1];  /* Conversion of Yb to b */
+	float Yr2r[CIELABTORGB_TABLE_RANGE + 1];    /* Conversion of Yr to r */
+	float Yg2g[CIELABTORGB_TABLE_RANGE + 1];    /* Conversion of Yg to g */
+	float Yb2b[CIELABTORGB_TABLE_RANGE + 1];    /* Conversion of Yb to b */
 } TIFFCIELabToRGB;
 
 /*
@@ -178,14 +163,12 @@ typedef struct {                                  /* CIE Lab 1976->RGB support *
  */
 typedef struct _TIFFRGBAImage TIFFRGBAImage;
 /*
- * The image reading and conversion routines invoke
- * ``put routines'' to copy/image/whatever tiles of
- * raw image data.  A default set of routines are 
- * provided to convert/copy raw image data to 8-bit
- * packed ABGR format rasters.  Applications can supply
- * alternate routines that unpack the data into a
- * different format or, for example, unpack the data
- * and draw the unpacked raster on the display.
+ * The image reading and conversion routines invoke ``put routines'' to 
+ * copy/image/whatever tiles of raw image data.  A default set of routines 
+ * are provided to convert/copy raw image data to 8-bit packed ABGR format 
+ * rasters.  Applications can supply alternate routines that unpack the data 
+ * into a different format or, for example, unpack the data and draw the 
+ * unpacked raster on the display.
  */
 typedef void (*tileContigRoutine)
     (TIFFRGBAImage*, uint32*, uint32, uint32, uint32, uint32, int32, int32,

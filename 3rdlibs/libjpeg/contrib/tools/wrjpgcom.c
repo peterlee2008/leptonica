@@ -19,9 +19,9 @@ extern void * malloc ();
 #endif
 #include <ctype.h>		/* to declare isupper(), tolower() */
 #ifdef USE_SETMODE
-#include <fcntl.h>		/* to declare setmode()'s parameter macros */
 /* If you have setmode() but not <io.h>, just delete this line: */
 #include <io.h>			/* to declare setmode() */
+#include <fcntl.h>		/* to declare setmode()'s parameter macros */
 #endif
 
 #ifdef USE_CCOMMAND		/* command-line reader for Macintosh */

@@ -50,16 +50,16 @@
 #include "tiffiop.h"
 #include "tiffio.h"
 
-float	defxres = 204.;		/* default x resolution (pixels/inch) */
-float	defyres = 98.;		/* default y resolution (lines/inch) */
-const float half = 0.5;
-const float points = 72.0;
-float	pageWidth = 0;		/* image page width (inches) */
-float	pageHeight = 0;		/* image page length (inches) */
-int	scaleToPage = 0;	/* if true, scale raster to page dimensions */
-int	totalPages = 0;		/* total # pages printed */
-int	row;			/* current output row */
-int	maxline = 512;		/* max output line of PostScript */
+float   defxres = 204.;		/* default x resolution (pixels/inch) */
+float   defyres = 98.;		/* default y resolution (lines/inch) */
+const   float half = 0.5;
+const   float points = 72.0;
+float   pageWidth = 0;		/* image page width (inches) */
+float   pageHeight = 0;		/* image page length (inches) */
+int     scaleToPage = 0;	/* if true, scale raster to page dimensions */
+int     totalPages = 0;		/* total # pages printed */
+int     row;                /* current output row */
+int     maxline = 512;		/* max output line of PostScript */
 
 /*
  * Turn a bit-mapped scanline into the appropriate sequence
@@ -386,42 +386,34 @@ main(int argc, char** argv)
 		    argv[optind]);
 	} while (++optind < argc);
     } else {
-	int n;
-	FILE* fd;
-	char buf[16*1024];
+        int n;
+        FILE* fd;
+        char buf[16*1024];
 
-	fd = tmpfile();
-	if (fd == NULL) {
-	    fprintf(stderr, "Could not obtain temporary file.\n");
-	    exit(-2);
-	}
-#if defined(HAVE_SETMODE) && defined(O_BINARY)
-	setmode(fileno(stdin), O_BINARY);
-#endif
-	while ((n = read(fileno(stdin), buf, sizeof (buf))) > 0) {
-                if (write(fileno(fd), buf, n) != n) {
-                        fclose(fd);
-                        fprintf(stderr,
-                                "Could not copy stdin to temporary file.\n");
-                        exit(-2);  
-                }
+        fd = tmpfile();
+        if (fd == NULL) {
+            fprintf(stderr, "Could not obtain temporary file.\n");
+            exit(-2);
         }
-	_TIFF_lseek_f(fileno(fd), 0, SEEK_SET);
-    /* 
-     * warning C4244: 'function' : conversion from 'intptr_t' to 'int', 
-     * possible loss of data
-     */
-#if defined(_WIN32) && defined(USE_WIN32_FILEIO)
-	tif = TIFFFdOpen(_get_osfhandle(fileno(fd)), "temp", "r");
-#else
-	tif = TIFFFdOpen(fileno(fd), "temp", "r");
+#if defined(HAVE_SETMODE) && defined(O_BINARY)
+        setmode(fileno(stdin), O_BINARY);
 #endif
-	if (tif) {
-	    fax2ps(tif, npages, pages, "<stdin>");
-	    TIFFClose(tif);
-	} else
-	    fprintf(stderr, "Can not open, or not a TIFF file.\n");
-	fclose(fd);
+        while ((n = read(fileno(stdin), buf, sizeof (buf))) > 0) {
+            if (write(fileno(fd), buf, n) != n) {
+                fclose(fd);
+                fprintf(stderr,
+                    "Could not copy stdin to temporary file.\n");
+                exit(-2);  
+            }
+        }
+        _TIFF_lseek_f(fileno(fd), 0, SEEK_SET);
+        tif = TIFFFdOpen(fileno(fd), "temp", "r");
+        if (tif) {
+            fax2ps(tif, npages, pages, "<stdin>");
+            TIFFClose(tif);
+        } else
+            fprintf(stderr, "Can not open, or not a TIFF file.\n");
+        fclose(fd);
     }
     printf("%%%%Trailer\n");
     printf("%%%%Pages: %u\n", totalPages);
@@ -447,14 +439,13 @@ NULL
 static void
 usage(int code)
 {
-	char buf[BUFSIZ];
-	int i;
+    char buf[BUFSIZ]; int i;
 
-	setbuf(stderr, buf);
+    setbuf(stderr, buf);
         fprintf(stderr, "%s\n\n", TIFFGetVersion());
-	for (i = 0; stuff[i] != NULL; i++)
-		fprintf(stderr, "%s\n", stuff[i]);
-	exit(code);
+    for (i = 0; stuff[i] != NULL; i++)
+        fprintf(stderr, "%s\n", stuff[i]);
+    exit(code);
 }
 
 /* vim: set ts=8 sts=8 sw=8 noet: */

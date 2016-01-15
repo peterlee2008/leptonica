@@ -227,7 +227,7 @@ add_reader_test(tiffinfo "-c -D -d -j -s" "images/minisblack-1c-16b.tiff")
 
 # tiffcp split/join
 foreach(image ${UNCOMPRESSEDIMAGES})
-	list(APPEND ESCAPED_UNCOMPRESSED "${CMAKE_CURRENT_SOURCE_DIR}/${image}")
+    list(APPEND ESCAPED_UNCOMPRESSED "${CMAKE_CURRENT_SOURCE_DIR}/${image}")
 endforeach()
 string(REPLACE ";" "^" ESCAPED_UNCOMPRESSED "${ESCAPED_UNCOMPRESSED}")
 add_test(NAME "tiffcp-split" COMMAND "${CMAKE_COMMAND}"

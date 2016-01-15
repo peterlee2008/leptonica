@@ -29,121 +29,203 @@
  * by Scott Wagner (wagner@itek.com), Itek Graphix, Rochester, NY USA
  */
 
-/*
-  CreateFileA/CreateFileW return type 'HANDLE'.
-
-  thandle_t is declared like
-
-    DECLARE_HANDLE(thandle_t);
-
-  in tiffio.h.
-
-  Windows (from winnt.h) DECLARE_HANDLE logic looks like
-
-  #ifdef STRICT
-    typedef void *HANDLE;
-  #define DECLARE_HANDLE(name) struct name##__ { int unused; }; \
-	typedef struct name##__ *name
-  #else
-    typedef PVOID HANDLE;
-  #define DECLARE_HANDLE(name) typedef HANDLE name
-  #endif
-
-  See http://bugzilla.maptools.org/show_bug.cgi?id=1941 for problems 
-  in WIN64 builds resulting from this.  Unfortunately, the proposed 
-  patch was lost.
-
-*/
-
 #include <io.h>
 #include <windows.h>
 
 #include "tiffiop.h"
 
+
 typedef union _file_client {
-	int fd; thandle_t hd;
+    int fd; thandle_t hd;
 } file_client_t, *p_file_client_t;
 
+
 static tmsize_t
-_tiffReadProc(thandle_t fd, void* buf, tmsize_t size)
+_tiffReadProc_(HANDLE hfile, void* buffer, tmsize_t size)
 {
     /* 
      * tmsize_t is 64bit on 64bit systems, but the WinAPI 
      * ReadFile takes 32bit sizes, so we loop through the 
      * data in suitable 32bit sized chunks 
      */
-    uint8* ma; uint64 mb; DWORD n; DWORD o; tmsize_t p;
-    ma=(uint8*)buf; mb=size; p=0;
-    while (mb>0)
+    uint8* ma; uint64 mb; DWORD n; DWORD offset; tmsize_t p;
+    ma = (uint8*)buffer; mb = size; p = 0;
+    while (mb > 0)
     {
-        n=0x80000000UL;
-        if ((uint64)n>mb) n=(DWORD)mb;
-        if (!ReadFile(fd,(LPVOID)ma,n,&o,NULL)) return(0);
-        ma+=o; mb-=o; p+=o;
-        if (o!=n) break;
+        n = 0x80000000UL;
+        if ((uint64)n > mb) n = (DWORD)mb;
+        if (!ReadFile(hfile, (LPVOID)ma, n, &offset, NULL)) 
+            return(0);
+        ma += offset; mb -= offset; p += offset;
+        if (offset < n) break;  /* Finished: use '<' instead */
     }
     return(p);
 }
+static tmsize_t
+_tiffReadProc1(thandle_t hfile, void* buffer, tmsize_t size)
+{
+    file_client_t file; HANDLE hFile; file.hd = hfile;
+    hFile = (thandle_t)_get_osfhandle( file.fd );
+    if (hFile == INVALID_HANDLE_VALUE) return 0;
+    else { return _tiffReadProc_(hFile, buffer, size); }
+}
+#if defined(USE_WIN32_FILEIO)
+#define _tiffReadProc2 _tiffReadProc_
+#else
+static tmsize_t
+_tiffReadProc2(thandle_t hfile, void* buffer, tmsize_t size)
+{
+    HANDLE hFile = (HANDLE)_get_osfhandle(_fileno(hfile));
+    if (hFile == INVALID_HANDLE_VALUE) return 0;
+    else { return _tiffReadProc_(hfile, buffer, size); }
+}
+#endif
+
 
 static tmsize_t
-_tiffWriteProc(thandle_t fd, void* buf, tmsize_t size)
+_tiffWriteProc_(HANDLE hfile, void* buffer, tmsize_t size)
 {
     /* 
      * tmsize_t is 64bit on 64bit systems, but the WinAPI 
      * WriteFile takes 32bit sizes, so we loop through the 
      * data in suitable 32bit sized chunks 
      */
-    uint8* ma; uint64 mb; DWORD n; DWORD o; tmsize_t p;
-    ma=(uint8*)buf; mb=size; p=0;
-    while (mb>0)
+    uint8* ma; uint64 mb; DWORD n; DWORD offset; tmsize_t p;
+    ma = (uint8*)buffer; mb = size; p = 0;
+    while (mb > 0)
     {
         n=0x80000000UL;
-        if ((uint64)n>mb) n=(DWORD)mb;
-        if (!WriteFile(fd,(LPVOID)ma,n,&o,NULL)) return(0);
-        ma+=o; mb-=o; p+=o;
-        if (o!=n) break;
+        if ((uint64)n > mb) n = (DWORD)mb;
+        if (!WriteFile(hfile, (LPVOID)ma, n, &offset, NULL)) 
+            return(0);
+        ma += offset; mb -= offset; p += offset;
+        if (offset < n) break;  /* Finished: use '<' instead */
     }
     return(p);
 }
+static tmsize_t
+_tiffWriteProc1(thandle_t hfile, void* buffer, tmsize_t size)
+{
+    file_client_t file; HANDLE hFile; file.hd = hfile;
+    hFile = (thandle_t)_get_osfhandle( file.fd );
+    if (hFile == INVALID_HANDLE_VALUE) return 0;
+    else { return _tiffWriteProc_(hFile, buffer, size); }
+}
+#if defined(USE_WIN32_FILEIO)
+#define _tiffWriteProc2 _tiffWriteProc_
+#else
+_tiffWriteProc2(thandle_t hfile, void* buffer, tmsize_t size)
+{
+    HANDLE hFile = (HANDLE)_get_osfhandle(_fileno(hfile));
+    if (hFile == INVALID_HANDLE_VALUE) return 0;
+    else { return _tiffWriteProc_(hfile, buffer, size); }
+}
+#endif
+
 
 static uint64
-_tiffSeekProc(thandle_t fd, uint64 off, int whence)
+_tiffSeekProc_(HANDLE hfile, uint64 offset, int whence)
 {
     LARGE_INTEGER offli; DWORD dwMoveMethod;
-    offli.QuadPart = off;
+    offli.QuadPart = offset;
     switch(whence) {
-        case SEEK_SET:	dwMoveMethod = FILE_BEGIN;	break;
-        case SEEK_CUR:	dwMoveMethod = FILE_CURRENT;break;
-        case SEEK_END:	dwMoveMethod = FILE_END;	break;
-        default:		dwMoveMethod = FILE_BEGIN;	break;
+        case SEEK_SET:  dwMoveMethod = FILE_BEGIN;  break;
+        case SEEK_CUR:  dwMoveMethod = FILE_CURRENT;break;
+        case SEEK_END:  dwMoveMethod = FILE_END;    break;
+        default:        dwMoveMethod = FILE_BEGIN;  break;
     }
     offli.LowPart = SetFilePointer(
-        fd, offli.LowPart, &offli.HighPart, dwMoveMethod
+        hfile, offli.LowPart, &offli.HighPart, dwMoveMethod
     );
     if(offli.LowPart == INVALID_SET_FILE_POINTER)
         if(GetLastError() != NO_ERROR) offli.QuadPart = 0;
     return(offli.QuadPart);
 }
-
-static int
-_tiffCloseProc(thandle_t fd)
-{
-    return (CloseHandle(fd) ? 0 : -1);
-}
-
 static uint64
-_tiffSizeProc(thandle_t fd)
+_tiffSeekProc1(thandle_t hfile, uint64 offset, int whence)
+{
+    file_client_t file; HANDLE hFile; file.hd = hfile;
+    hFile = (thandle_t)_get_osfhandle( file.fd );
+    if (hFile == INVALID_HANDLE_VALUE) return 0;
+    else { return _tiffSeekProc_(hFile, offset, whence); }
+}
+#if defined(USE_WIN32_FILEIO)
+#define _tiffSeekProc2 _tiffSeekProc_
+#else
+static uint64
+_tiffSeekProc2(thandle_t hfile, uint64 offset, int whence)
+{
+    HANDLE hFile = (HANDLE)_get_osfhandle(_fileno(hfile));
+    if (hFile == INVALID_HANDLE_VALUE) return 0;
+    else { return _tiffSeekProc_(hFile, offset, whence); }
+}
+#endif
+
+
+static int _tiffCloseProc_(HANDLE hfile)
+{
+    return (CloseHandle(hfile) ? 0 : -1);
+}
+static int _tiffCloseProc1(thandle_t hfile)
+{
+    file_client_t file; file.hd = hfile; 
+    return _close(file.fd); /* Simply return its value */
+}
+#if defined(USE_WIN32_FILEIO)
+#define _tiffCloseProc2 _tiffCloseProc_
+#else
+static int _tiffCloseProc2(thandle_t hfile)
+{
+    return fclose((FILE *)hfile);
+}
+#endif
+
+
+static uint64 _tiffSizeProc_(HANDLE hfile)
 {
     ULARGE_INTEGER m;
-    m.LowPart=GetFileSize(fd,&m.HighPart);
+    m.LowPart = GetFileSize(hfile, &m.HighPart);
     return(m.QuadPart);
 }
+static uint64 _tiffSizeProc1(thandle_t hfile)
+{
+    file_client_t file; HANDLE hFile; file.hd = hfile;
+    hFile = (thandle_t)_get_osfhandle( file.fd );
+    if (hFile == INVALID_HANDLE_VALUE) return 0;
+    else { return _tiffSizeProc_(hFile); }
+}
+#if defined(USE_WIN32_FILEIO)
+#define _tiffSizeProc2 _tiffSizeProc_
+#else
+static uint64 _tiffSizeProc2(thandle_t hfile)
+{
+    HANDLE hFile = (HANDLE)_get_osfhandle(_fileno(hfile));
+    if (hFile == INVALID_HANDLE_VALUE) return 0;
+    else { return _tiffSizeProc_(hFile); }
+}
+#endif
+
 
 static int
-_tiffDummyMapProc(thandle_t fd, void** pbase, toff_t* psize)
+_tiffDummyMapProc_(HANDLE hfile, void** pbase, toff_t* psize)
 {
-    (void) fd; (void) pbase; (void) psize; return (0);
+    (void) hfile; (void) pbase; (void) psize; return (0);
 }
+static int
+_tiffDummyMapProc1(thandle_t hfile, void** pbase, toff_t* psize)
+{
+    (void) hfile; (void) pbase; (void) psize; return (0);
+}
+#if defined(USE_WIN32_FILEIO)
+#define _tiffDummyMapProc2 _tiffDummyMapProc_
+#else
+static int
+_tiffDummyMapProc2(thandle_t hfile, void** pbase, toff_t* psize)
+{
+    (void) hfile; (void) pbase; (void) psize; return (0);
+}
+#endif
+
 
 /*
  * From "Hermann Josef Hill" <lhill@rhein-zeitung.de>:
@@ -157,11 +239,11 @@ _tiffDummyMapProc(thandle_t fd, void** pbase, toff_t* psize)
  * with Visual C++ 5.0
  */
 static int
-_tiffMapProc(thandle_t fd, void** pbase, toff_t* psize)
+_tiffMapProc_(HANDLE hfile, void** pbase, toff_t* psize)
 {
     uint64 size; tmsize_t sizem; HANDLE hMapFile;
 
-    size = _tiffSizeProc(fd); sizem = (tmsize_t)size;
+    size = _tiffSizeProc_(hfile); sizem = (tmsize_t)size;
     if((uint64)sizem != size) return (0);
 
     /* 
@@ -169,25 +251,78 @@ _tiffMapProc(thandle_t fd, void** pbase, toff_t* psize)
      * that we create a file mapping object for the full file 
      * size. 
      */
-    hMapFile = CreateFileMapping(fd,NULL,PAGE_READONLY,0,0,NULL);
+    hMapFile = CreateFileMapping(
+        hfile, NULL, PAGE_READONLY, 0, 0, NULL);
     if (hMapFile == NULL) return (0);
     *pbase = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
     CloseHandle(hMapFile);
     if (*pbase == NULL) return (0);
     *psize = size; return(1);
 }
+static int
+_tiffMapProc1(thandle_t hfile, void** pbase, toff_t* psize)
+{
+    file_client_t file; HANDLE hFile; file.hd = hfile;
+    hFile = (thandle_t)_get_osfhandle( file.fd );
+    if (hFile == INVALID_HANDLE_VALUE) return 0;
+    else { return _tiffMapProc_(hFile, pbase, psize); }
+}
+#if defined(USE_WIN32_FILEIO)
+#define _tiffMapProc2 _tiffMapProc_
+#else
+static int
+_tiffMapProc2(thandle_t hfile, void** pbase, toff_t* psize)
+{
+    HANDLE hFile = (HANDLE)_get_osfhandle(_fileno(hfile));
+    if (hFile == INVALID_HANDLE_VALUE) return 0;
+    else { return _tiffMapProc_(hFile, pbase, psize); }
+}
+#endif
+
 
 static void
-_tiffDummyUnmapProc(thandle_t fd, void* base, toff_t size)
+_tiffDummyUnmapProc_(HANDLE hfile, void* base, toff_t size)
 {
-    (void) fd; (void) base; (void) size;
+    (void) hfile; (void) base; (void) size;
 }
+static void
+_tiffDummyUnmapProc1(thandle_t hfile, void* base, toff_t size)
+{
+    (void) hfile; (void) base; (void) size;
+}
+#if defined(USE_WIN32_FILEIO)
+#define _tiffDummyUnmapProc2 _tiffDummyUnmapProc_
+#else
+static void
+_tiffDummyUnmapProc2(thandle_t hfile, void* base, toff_t size)
+{
+    (void) hfile; (void) base; (void) size;
+}
+#endif
+
 
 static void
-_tiffUnmapProc(thandle_t fd, void* base, toff_t size)
+_tiffUnmapProc_(HANDLE hfile, void* base, toff_t size)
 {
-    (void) fd; (void) size; UnmapViewOfFile(base);
+    (void) hfile; (void) size; UnmapViewOfFile(base);
 }
+static void
+_tiffUnmapProc1(thandle_t hfile, void* base, toff_t size)
+{
+    (void) hfile; (void) size; UnmapViewOfFile(base);
+}
+#if defined(USE_WIN32_FILEIO)
+#define _tiffUnmapProc2 _tiffUnmapProc_
+#else
+static void
+_tiffUnmapProc2(thandle_t hfile, void* base, toff_t size)
+{
+    HANDLE hFile = (HANDLE)_get_osfhandle(_fileno(hfile));
+    if (hFile == INVALID_HANDLE_VALUE) return 0;
+    else { return _tiffUnmapProc_(hFile, pbase, psize); }
+}
+#endif
+
 
 /*
  * Open a TIFF file descriptor for read/writing.
@@ -195,34 +330,33 @@ _tiffUnmapProc(thandle_t fd, void* base, toff_t size)
  * 'u' in the mode string, which forces the file to be opened 
  * unmapped.
  */
-TIFF* TIFFFdOpen(int ifd, const char* name, const char* mode)
+TIFF* TIFFFdOpen(int hfile, const char* name, const char* mode)
 {
-    int m; TIFF* tif; thandle_t hfd; int fSuppressMap = 0;
-    for (m=0; mode[m]!=0; m++) {
-        if (mode[m]=='u') { fSuppressMap=1; break; }
+    TIFF* tif; int m; int fSuppressMap = 0;
+    for (m = 0; mode[m] != 0; ++m) {
+        if (mode[m] == 'u') { fSuppressMap = 1; break; }
     }
     /* FIXED: WIN64 cast to pointer warning */
-    hfd = (thandle_t)_get_osfhandle( ifd );
-    tif = TIFFClientOpen( name, mode, hfd, 
-             _tiffReadProc, _tiffWriteProc,
-             _tiffSeekProc, _tiffCloseProc, _tiffSizeProc,
-             fSuppressMap ? _tiffDummyMapProc : _tiffMapProc,
-             fSuppressMap ? _tiffDummyUnmapProc : _tiffUnmapProc);
-    if (tif) tif->tif_fd = ifd;
+    tif = TIFFClientOpen( name, mode, (thandle_t)hfile, 
+             _tiffReadProc1, _tiffWriteProc1,
+             _tiffSeekProc1, _tiffCloseProc1, _tiffSizeProc1,
+             fSuppressMap ? _tiffDummyMapProc1 : _tiffMapProc1,
+             fSuppressMap ? _tiffDummyUnmapProc1 : _tiffUnmapProc1);
+    if (tif) tif->tif_fd = hfile;
     return (tif);
 }
-TIFF* TIFFHdOpen(thandle_t hfd, const char* name, const char* mode)
+TIFF* TIFFHdOpen(thandle_t hfile, const char* name, const char* mode)
 {
     int m; TIFF* tif; int fSuppressMap = 0;
     for (m=0; mode[m]!=0; m++) {
         if (mode[m]=='u') { fSuppressMap=1; break; }
     }
     /* Here, We don't need the file descriptor, return directly */
-    tif = TIFFClientOpen(name, mode, hfd, 
-             _tiffReadProc, _tiffWriteProc,
-             _tiffSeekProc, _tiffCloseProc, _tiffSizeProc,
-             fSuppressMap ? _tiffDummyMapProc : _tiffMapProc,
-             fSuppressMap ? _tiffDummyUnmapProc : _tiffUnmapProc);
+    tif = TIFFClientOpen(name, mode, (thandle_t)hfile, 
+             _tiffReadProc2, _tiffWriteProc2,
+             _tiffSeekProc2, _tiffCloseProc2, _tiffSizeProc2,
+             fSuppressMap ? _tiffDummyMapProc2 : _tiffMapProc2,
+             fSuppressMap ? _tiffDummyUnmapProc2 : _tiffUnmapProc2);
     return (tif);
 }
 
@@ -239,12 +373,12 @@ TIFF* TIFFOpen(const char* name, const char* mode)
     m = _TIFFgetMode(mode, module);
 
     switch(m) {
-        case O_RDONLY:				dwMode = OPEN_EXISTING; break;
-        case O_RDWR:				dwMode = OPEN_ALWAYS;   break;
-        case O_RDWR|O_CREAT:		dwMode = OPEN_ALWAYS;   break;
-        case O_RDWR|O_TRUNC:		dwMode = CREATE_ALWAYS; break;
+        case O_RDONLY:              dwMode = OPEN_EXISTING; break;
+        case O_RDWR:                dwMode = OPEN_ALWAYS;   break;
+        case O_RDWR|O_CREAT:        dwMode = OPEN_ALWAYS;   break;
+        case O_RDWR|O_TRUNC:        dwMode = CREATE_ALWAYS; break;
         case O_RDWR|O_CREAT|O_TRUNC:dwMode = CREATE_ALWAYS; break;
-        default:					return ((TIFF*)0);
+        default:                    return ((TIFF*)0);
     }
 
     hd = (thandle_t)CreateFileA(name,
@@ -257,21 +391,6 @@ TIFF* TIFFOpen(const char* name, const char* mode)
         TIFFErrorExt(0, module, "%s: Cannot open", name);
         return ((TIFF *)0);
     }
-
-    /* FIXED: WIN64 cast from pointer to int warning 
-     * 'FIXED' here actually case a security issue, when you close 
-     * the tiff file, it will call _tiffCloseProc to close the file 
-     * handle, inside, it uses CloseHandle. 
-     * But here we use _open_osfhandle to create a file descriptor, 
-     * this function has its management mechanism, you must call
-     * _close to close the file descriptor. So if you close the file
-     * by calling CloseHandle (but not by calling _close), The memory 
-     * leak would occur
-    */
-    // fd = _open_osfhandle(hd, m);
-    // if(fd != -1) tif = TIFFFdOpen(hd, name, mode);
-    // if(!tif) _close(hd);
-    // return tif;
 
     /* 
      * FIXED: WIN64 cast from pointer to int warning 
@@ -293,19 +412,19 @@ TIFF* TIFFOpen(const char* name, const char* mode)
 TIFF* TIFFOpenW(const wchar_t* name, const char* mode)
 {
     static const char module[] = "TIFFOpenW";
-    thandle_t fd; 
+    thandle_t fd = NULL; 
     char *mbname = NULL; TIFF *tif;
     int m; DWORD dwMode; int mbsize; 
 
     m = _TIFFgetMode(mode, module);
 
     switch(m) {
-        case O_RDONLY:				dwMode = OPEN_EXISTING; break;
-        case O_RDWR:				dwMode = OPEN_ALWAYS;   break;
-        case O_RDWR|O_CREAT:		dwMode = OPEN_ALWAYS;   break;
-        case O_RDWR|O_TRUNC:		dwMode = CREATE_ALWAYS; break;
+        case O_RDONLY:              dwMode = OPEN_EXISTING; break;
+        case O_RDWR:                dwMode = OPEN_ALWAYS;   break;
+        case O_RDWR|O_CREAT:        dwMode = OPEN_ALWAYS;   break;
+        case O_RDWR|O_TRUNC:        dwMode = CREATE_ALWAYS; break;
         case O_RDWR|O_CREAT|O_TRUNC:dwMode = CREATE_ALWAYS; break;
-        default:					return ((TIFF*)0);
+        default:                    return ((TIFF*)0);
     }
 
     fd = (thandle_t)CreateFileW(name,
@@ -341,8 +460,8 @@ TIFF* TIFFOpenW(const wchar_t* name, const char* mode)
 
 void* _TIFFmalloc(tmsize_t s)
 {
-	if (s == 0) return ((void *) NULL);
-	return (malloc((size_t) s));
+    if (s == 0) return ((void *) NULL);
+    return (malloc((size_t) s));
 }
 
 void _TIFFfree(void* p)

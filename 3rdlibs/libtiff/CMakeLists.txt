@@ -156,16 +156,9 @@ check_function_exists(setmode HAVE_SETMODE)
 check_function_exists(isascii HAVE_ISASCII)
 check_function_exists(memmove HAVE_MEMMOVE)
 check_function_exists(strrchr HAVE_STRRCHR)
+check_function_exists(snprintf HAVE_SNPRINTF)
 check_function_exists(jbg_newlen HAVE_JBG_NEWLEN)
 
-check_function_exists(strncpy HAVE_STRNCPY)
-check_function_exists(strcpy_s HAVE_STRCPY_S)
-check_function_exists(strncpy_s HAVE_STRNCPY_S)
-
-check_function_exists(snprintf HAVE_SNPRINTF)
-check_function_exists(_snprintf HAVE__SNPRINTF)
-check_function_exists(_sprintf_s HAVE__SPRINTF_S)
-check_function_exists(_snprintf_s HAVE__SNPRINTF_S)
 
 check_function_exists(lfind HAVE_LFIND)
 check_function_exists(getopt HAVE_GETOPT)

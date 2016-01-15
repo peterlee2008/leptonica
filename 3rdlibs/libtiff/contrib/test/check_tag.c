@@ -29,6 +29,9 @@
  * Helper testing routines.
  */
 
+#include <stdio.h>
+#include <string.h>
+
 #include "tiffio.h"
 
 int
@@ -87,5 +90,4 @@ CheckLongField(TIFF *tif, const ttag_t field, const uint32 value)
 
 	return 0;
 }
-
 
